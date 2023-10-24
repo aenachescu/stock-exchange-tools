@@ -46,3 +46,4 @@ SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
 BreakBeforeBinaryOperators: NonAssignment
 PenaltyReturnTypeOnItsOwnLine: 1000
+AlwaysBreakTemplateDeclarations: Yes
