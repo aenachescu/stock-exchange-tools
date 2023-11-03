@@ -10,11 +10,13 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 
 add_executable(bvb_scraper_tool
     src/bvb_scraper_tool.cpp
-    src/bvb_scraper.cpp)
+    src/bvb_scraper.cpp
+    src/curl_utils.cpp)
 
 target_include_directories(bvb_scraper_tool PUBLIC
     include
-    expected/include/tl)
+    expected/include/tl
+    magic_enum/include)
 
 set_target_properties(bvb_scraper_tool PROPERTIES COMPILE_FLAGS "-std=c++2b")
 

@@ -1,20 +1,14 @@
 #ifndef BVB_SCRAPER_H
 #define BVB_SCRAPER_H
 
+#include "curl_utils.h"
+#include "error.h"
 #include "expected.hpp"
 #include "noncopyable.h"
 #include "nonmovable.h"
 #include "stock_index.h"
 
-#include <vector>
-
 class CBvbScraper : private noncopyable, private nonmovable {
-public:
-    enum class Error
-    {
-        CurlInitError = 1,
-    };
-
 public:
     CBvbScraper()  = default;
     ~CBvbScraper() = default;
@@ -26,7 +20,13 @@ public:
     tl::expected<IndexTradingData, Error> GetTradingData(const IndexName& name);
 
 private:
-    tl::expected<std::string, Error> FetchData(const std::string& url);
+    tl::expected<HttpResponse, Error> SendHttpRequest(
+        const char* url,
+        const CurlHeaders& headers,
+        HttpMethod method   = HttpMethod::get,
+        HttpVersion version = HttpVersion::http1_1);
+
+    tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
 };
 
 #endif // BVB_SCRAPER_H

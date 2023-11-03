@@ -9,38 +9,38 @@ class ScopedPtr : private noncopyable, private nonmovable {
 public:
     ScopedPtr()
     {
-        ptr = init();
+        m_ptr = init();
     }
     ~ScopedPtr()
     {
-        cleanup(ptr);
+        cleanup(m_ptr);
     }
 
-    T* get()
+    T* Get()
     {
-        return ptr;
+        return m_ptr;
     }
-    const T* get() const
+    const T* Get() const
     {
-        return ptr;
+        return m_ptr;
     }
 
     T* operator->()
     {
-        return ptr;
+        return m_ptr;
     }
     const T* operator->() const
     {
-        return ptr;
+        return m_ptr;
     }
 
     operator bool() const
     {
-        return ptr != nullptr;
+        return m_ptr != nullptr;
     }
 
 private:
-    T* ptr;
+    T* m_ptr;
 };
 
 #endif // SCOPED_PTR_H

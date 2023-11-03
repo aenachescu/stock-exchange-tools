@@ -4,7 +4,8 @@
             "name": "Linux-x64",
             "includePath": [
                 "${workspaceFolder}/include/**",
-                "${workspaceFolder}/expected/include/tl/"
+                "${workspaceFolder}/expected/include/tl/",
+                "${workspaceFolder}/magic_enum/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
