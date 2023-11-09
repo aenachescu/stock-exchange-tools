@@ -1,73 +1,45 @@
 #include "bvb_scraper.h"
 
+#include "html_parser.h"
+
 #include <string_view>
 #include <utility>
 
-tl::expected<IndexesNames, Error> CBvbScraper::GetIndexes()
+tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
 {
-    static constexpr std::string_view kIndexesMark =
-        "<select "
-        "name=\"ctl00$ctl00$body$rightColumnPlaceHolder$"
-        "IndexProfilesCurrentValues$IndexControlList$ddIndices\"";
-    static constexpr std::string_view kIndexesMarkEnd = "</select>";
-    static constexpr std::string_view kIndexMark1     = "<option ";
-    static constexpr std::string_view kIndexMark2     = ">";
-    static constexpr std::string_view kIndexMarkEnd   = "</option>";
-
-    IndexesNames names;
-
     auto rsp = GetIndicesProfilesPage();
     if (! rsp) {
         return tl::unexpected(rsp.error());
     }
 
-    std::string& body  = rsp.value().body;
-    size_t startPos    = std::string::npos;
-    size_t endPos      = std::string::npos;
-    size_t indexPos    = std::string::npos;
-    size_t indexEndPos = std::string::npos;
-
-    startPos = body.find(kIndexesMark);
-    if (startPos == std::string::npos) {
-        return tl::unexpected(Error::MarkNotFound);
-    }
-    startPos += kIndexesMark.size();
-
-    endPos = body.find(kIndexesMarkEnd, startPos);
-    if (endPos == std::string::npos) {
-        return tl::unexpected(Error::MarkNotFound);
-    }
-
-    if (startPos >= endPos) {
-        return tl::unexpected(Error::InvalidMarkPosition);
-    }
-
-    while (true) {
-        indexPos = body.find(kIndexMark1.data(), startPos);
-        if (indexPos == std::string::npos || indexPos >= endPos) {
-            break;
-        }
-        indexPos += kIndexMark1.size();
-
-        indexPos = body.find(kIndexMark2.data(), indexPos);
-        if (indexPos == std::string::npos || indexPos >= endPos) {
-            return tl::unexpected(Error::MarkNotFound);
-        }
-        indexPos += kIndexMark2.size();
-
-        indexEndPos = body.find(kIndexMarkEnd.data(), indexPos);
-        if (indexEndPos == std::string::npos || indexEndPos >= endPos) {
-            return tl::unexpected(Error::MarkNotFound);
-        }
-
-        names.push_back(body.substr(indexPos, indexEndPos - indexPos));
-        startPos = indexEndPos + kIndexesMarkEnd.size();
-    }
-
-    return names;
+    return ParseIndexesNames(rsp.value().body);
 }
 
-tl::expected<HttpResponse, Error> CBvbScraper::SendHttpRequest(
+bool BvbScraper::IsValidIndexName(const std::string& name)
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    if (! std::isalpha(name.front()) || ! std::isalpha(name.back())) {
+        return false;
+    }
+
+    for (size_t i = 1; i < name.size() - 1; i++) {
+        if (isalpha(name[i])) {
+            continue;
+        }
+        if (name[i] == '-' && isalpha(name[i - 1]) && isalpha(name[i + 1])) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
     const char* url,
     const CurlHeaders& headers,
     HttpMethod method,
@@ -97,7 +69,7 @@ tl::expected<HttpResponse, Error> CBvbScraper::SendHttpRequest(
     return curl.Perform();
 }
 
-tl::expected<HttpResponse, Error> CBvbScraper::GetIndicesProfilesPage()
+tl::expected<HttpResponse, Error> BvbScraper::GetIndicesProfilesPage()
 {
     CurlHeaders headers;
     Error err = Error::NoError;
@@ -136,4 +108,50 @@ tl::expected<HttpResponse, Error> CBvbScraper::GetIndicesProfilesPage()
     }
 
     return std::move(rsp);
+}
+
+tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
+    const std::string& data)
+{
+    static constexpr std::string_view kSelectName =
+        "ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
+        "IndexControlList$ddIndices";
+
+    IndexesNames names;
+    HtmlParser html(data);
+
+    auto selectLocation =
+        html.FindElement(HtmlTag::Select, {}, HtmlAttribute::Name, kSelectName);
+    if (! selectLocation) {
+        return tl::unexpected(selectLocation.error());
+    }
+
+    ClosedInterval selectDataCi = selectLocation.value().data;
+    while (true) {
+        auto optionLocation = html.FindElement(HtmlTag::Option, selectDataCi);
+        if (! optionLocation) {
+            if (! names.empty() &&
+                optionLocation.error() == Error::HtmlElementNotFound) {
+                break;
+            }
+
+            return tl::unexpected(optionLocation.error());
+        }
+
+        HtmlElementLocation& loc = optionLocation.value();
+
+        if (loc.data.Empty()) {
+            return tl::unexpected(Error::NoData);
+        }
+
+        std::string name = data.substr(loc.data.Lower(), loc.data.Size());
+        if (! IsValidIndexName(name)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+
+        names.push_back(std::move(name));
+        selectDataCi.SetLower(loc.endTag.Upper() + 1);
+    }
+
+    return names;
 }

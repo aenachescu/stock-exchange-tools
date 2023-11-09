@@ -5,16 +5,16 @@
 
 int main()
 {
-    CBvbScraper bvb_scraper;
+    BvbScraper bvb_scraper;
 
-    auto r = bvb_scraper.GetIndexes();
+    auto r = bvb_scraper.GetIndexesNames();
     if (! r) {
         std::cout << "failed to get indexes: "
                   << magic_enum::enum_name(r.error()) << std::endl;
         return -1;
     }
 
-    std::cout << "Indexes:" << std::endl;
+    std::cout << "Indexes: " << r.value().size() << std::endl;
     for (const auto& i : r.value()) {
         std::cout << i << std::endl;
     }

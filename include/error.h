@@ -20,8 +20,14 @@ enum class Error : uint32_t
     CurlSetoptError,
     CurlPerformError,
     UnexpectedResponseCode,
-    MarkNotFound,
-    InvalidMarkPosition,
+    InvalidClosedInterval,
+    HtmlElementNotFound,
+    IncompleteHtmlElement,
+    InvalidHtmlElement,
+    InvalidHtmlTag,
+    InvalidHtmlAttribute,
+    NoData,
+    InvalidData,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ERROR_H

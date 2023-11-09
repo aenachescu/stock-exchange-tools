@@ -44,6 +44,6 @@ SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: true
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: ControlStatements
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: None
 PenaltyReturnTypeOnItsOwnLine: 1000
 AlwaysBreakTemplateDeclarations: Yes

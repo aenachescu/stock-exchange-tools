@@ -8,18 +8,23 @@
 #include "nonmovable.h"
 #include "stock_index.h"
 
-class CBvbScraper : private noncopyable, private nonmovable {
-public:
-    CBvbScraper()  = default;
-    ~CBvbScraper() = default;
+class BvbScraper : private noncopyable, private nonmovable {
+private:
+    friend class BvbScraperTest;
 
-    tl::expected<IndexesNames, Error> GetIndexes();
+public:
+    BvbScraper()  = default;
+    ~BvbScraper() = default;
+
+    tl::expected<IndexesNames, Error> GetIndexesNames();
     tl::expected<IndexesPerformance, Error> GetIndexesPerformance();
     tl::expected<Index, Error> GetConstituents(const IndexName& name);
     tl::expected<Index, Error> GetAdjustmentsHistory(const IndexName& name);
     tl::expected<IndexTradingData, Error> GetTradingData(const IndexName& name);
 
 private:
+    bool IsValidIndexName(const std::string& name);
+
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
         const CurlHeaders& headers,
@@ -27,6 +32,9 @@ private:
         HttpVersion version = HttpVersion::http1_1);
 
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
+
+    tl::expected<IndexesNames, Error> ParseIndexesNames(
+        const std::string& data);
 };
 
 #endif // BVB_SCRAPER_H

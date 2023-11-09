@@ -37,3 +37,4 @@ cmake_install.cmake
 Makefile
 
 bvb_scraper_tool
+set_unit_tests
