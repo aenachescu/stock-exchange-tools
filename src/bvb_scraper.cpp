@@ -126,20 +126,13 @@ tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
         return tl::unexpected(selectLocation.error());
     }
 
-    ClosedInterval selectDataCi = selectLocation.value().data;
-    while (true) {
-        auto optionLocation = html.FindElement(HtmlTag::Option, selectDataCi);
-        if (! optionLocation) {
-            if (! names.empty() &&
-                optionLocation.error() == Error::HtmlElementNotFound) {
-                break;
-            }
+    auto optionLocations =
+        html.FindAllElements(HtmlTag::Option, selectLocation.value().data);
+    if (! optionLocations) {
+        return tl::unexpected(optionLocations.error());
+    }
 
-            return tl::unexpected(optionLocation.error());
-        }
-
-        HtmlElementLocation& loc = optionLocation.value();
-
+    for (const auto& loc : optionLocations.value()) {
         if (loc.data.Empty()) {
             return tl::unexpected(Error::NoData);
         }
@@ -150,7 +143,6 @@ tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
         }
 
         names.push_back(std::move(name));
-        selectDataCi.SetLower(loc.endTag.Upper() + 1);
     }
 
     return names;
