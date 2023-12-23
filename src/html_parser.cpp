@@ -10,12 +10,7 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
     HtmlAttribute attr,
     std::string_view attrValue)
 {
-    size_t beginPos     = std::string::npos;
-    size_t beginStopPos = std::string::npos;
-    size_t endPos       = std::string::npos;
-    size_t attrPos      = std::string::npos;
-
-    if (ci.Upper() == std::string::npos) {
+    if (ci.Upper() >= m_htmlPage.size()) {
         ci.SetUpper(m_htmlPage.size() - 1);
     }
 
@@ -23,55 +18,68 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
         return tl::unexpected(Error::InvalidClosedInterval);
     }
 
-    auto attrMark = GetAttributeMark(attr, attrValue);
-    if (attr != HtmlAttribute::None && ! attrMark) {
-        return tl::unexpected(attrMark.error());
+    auto eAttrMark = GetAttributeMark(attr, attrValue);
+    if (attr != HtmlAttribute::None && ! eAttrMark) {
+        return tl::unexpected(eAttrMark.error());
     }
 
-    auto tagMarks = GetTagMarks(tag);
-    if (! tagMarks) {
-        return tl::unexpected(tagMarks.error());
+    auto eTagMarks = GetTagMarks(tag);
+    if (! eTagMarks) {
+        return tl::unexpected(eTagMarks.error());
     }
+
+    const HtmlTagMarks& tagMarks = eTagMarks.value();
+    size_t beginPos              = std::string::npos;
+    size_t beginStopPos          = std::string::npos;
+    size_t endPos                = std::string::npos;
+    size_t attrPos               = std::string::npos;
+    size_t numOfBeginMarks       = 0;
 
     while (true) {
-        beginPos = FindInInterval(tagMarks.value().begin, ci);
-        if (beginPos == std::string::npos) {
-            return tl::unexpected(Error::HtmlElementNotFound);
+        auto eBeginTagPos = FindBeginTagMark(tagMarks, ci);
+        if (! eBeginTagPos) {
+            return tl::unexpected(eBeginTagPos.error());
         }
-        ci.SetLower(beginPos + tagMarks.value().begin.size());
-
-        beginStopPos = FindInInterval(tagMarks.value().beginStop, ci);
-        if (beginStopPos == std::string::npos) {
-            return tl::unexpected(Error::IncompleteHtmlElement);
-        }
-        ci.SetLower(beginStopPos + tagMarks.value().beginStop.size());
-
-        if (beginPos + tagMarks.value().begin.size() != beginStopPos &&
-            m_htmlPage[beginPos + tagMarks.value().begin.size()] != ' ') {
-            return tl::unexpected(Error::InvalidHtmlElement);
-        }
+        beginPos     = eBeginTagPos.value().beginPos;
+        beginStopPos = eBeginTagPos.value().beginStopPos;
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
-                attrMark.value(),
-                {beginPos + tagMarks.value().begin.size(), beginStopPos - 1});
+                eAttrMark.value(),
+                {beginPos + tagMarks.begin.size(), beginStopPos - 1});
             if (attrPos == std::string::npos) {
                 continue;
             }
         }
 
-        endPos = FindInInterval(tagMarks.value().end, ci);
-        if (endPos == std::string::npos) {
-            return tl::unexpected(Error::IncompleteHtmlElement);
+        while (true) {
+            endPos = FindInInterval(tagMarks.end, ci);
+            if (endPos == std::string::npos) {
+                return tl::unexpected(Error::IncompleteHtmlElement);
+            }
+
+            auto eCount =
+                CountBeginTagMarks(tagMarks, {ci.Lower(), endPos - 1});
+            if (! eCount) {
+                return tl::unexpected(eCount.error());
+            }
+
+            numOfBeginMarks += eCount.value();
+            if (numOfBeginMarks == 0) {
+                break;
+            }
+
+            ci.SetLower(endPos + tagMarks.end.size());
+            --numOfBeginMarks;
         }
 
         break;
     }
 
     return HtmlElementLocation{
-        {beginPos, beginStopPos + tagMarks.value().beginStop.size() - 1},
-        {beginStopPos + tagMarks.value().beginStop.size(), endPos - 1},
-        {endPos, endPos + tagMarks.value().end.size() - 1}};
+        {beginPos, beginStopPos + tagMarks.beginStop.size() - 1},
+        {beginStopPos + tagMarks.beginStop.size(), endPos - 1},
+        {endPos, endPos + tagMarks.end.size() - 1}};
 }
 
 tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
@@ -80,12 +88,7 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
     HtmlAttribute attr,
     std::string_view attrValue)
 {
-    size_t beginPos     = std::string::npos;
-    size_t beginStopPos = std::string::npos;
-    size_t endPos       = std::string::npos;
-    size_t attrPos      = std::string::npos;
-
-    if (ci.Upper() == std::string::npos) {
+    if (ci.Upper() >= m_htmlPage.size()) {
         ci.SetUpper(m_htmlPage.size() - 1);
     }
 
@@ -93,58 +96,70 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
         return tl::unexpected(Error::InvalidClosedInterval);
     }
 
-    auto attrMark = GetAttributeMark(attr, attrValue);
-    if (attr != HtmlAttribute::None && ! attrMark) {
-        return tl::unexpected(attrMark.error());
+    auto eAttrMark = GetAttributeMark(attr, attrValue);
+    if (attr != HtmlAttribute::None && ! eAttrMark) {
+        return tl::unexpected(eAttrMark.error());
     }
 
-    auto tagMarks = GetTagMarks(tag);
-    if (! tagMarks) {
-        return tl::unexpected(tagMarks.error());
+    auto eTagMarks = GetTagMarks(tag);
+    if (! eTagMarks) {
+        return tl::unexpected(eTagMarks.error());
     }
 
     HtmlElementLocations locations;
+    const HtmlTagMarks& tagMarks = eTagMarks.value();
+    size_t beginPos              = std::string::npos;
+    size_t beginStopPos          = std::string::npos;
+    size_t endPos                = std::string::npos;
+    size_t attrPos               = std::string::npos;
+    size_t numOfBeginMarks       = 0;
 
     while (true) {
-        beginPos = FindInInterval(tagMarks.value().begin, ci);
-        if (beginPos == std::string::npos) {
-            if (! locations.empty()) {
+        auto eBeginTagPos = FindBeginTagMark(tagMarks, ci);
+        if (! eBeginTagPos) {
+            if (eBeginTagPos.error() == Error::HtmlElementNotFound &&
+                ! locations.empty()) {
                 break;
             }
-
-            return tl::unexpected(Error::HtmlElementNotFound);
+            return tl::unexpected(eBeginTagPos.error());
         }
-        ci.SetLower(beginPos + tagMarks.value().begin.size());
-
-        beginStopPos = FindInInterval(tagMarks.value().beginStop, ci);
-        if (beginStopPos == std::string::npos) {
-            return tl::unexpected(Error::IncompleteHtmlElement);
-        }
-        ci.SetLower(beginStopPos + tagMarks.value().beginStop.size());
-
-        if (beginPos + tagMarks.value().begin.size() != beginStopPos &&
-            m_htmlPage[beginPos + tagMarks.value().begin.size()] != ' ') {
-            return tl::unexpected(Error::InvalidHtmlElement);
-        }
+        beginPos     = eBeginTagPos.value().beginPos;
+        beginStopPos = eBeginTagPos.value().beginStopPos;
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
-                attrMark.value(),
-                {beginPos + tagMarks.value().begin.size(), beginStopPos - 1});
+                eAttrMark.value(),
+                {beginPos + tagMarks.begin.size(), beginStopPos - 1});
             if (attrPos == std::string::npos) {
                 continue;
             }
         }
 
-        endPos = FindInInterval(tagMarks.value().end, ci);
-        if (endPos == std::string::npos) {
-            return tl::unexpected(Error::IncompleteHtmlElement);
+        while (true) {
+            endPos = FindInInterval(tagMarks.end, ci);
+            if (endPos == std::string::npos) {
+                return tl::unexpected(Error::IncompleteHtmlElement);
+            }
+
+            auto eCount =
+                CountBeginTagMarks(tagMarks, {ci.Lower(), endPos - 1});
+            if (! eCount) {
+                return tl::unexpected(eCount.error());
+            }
+
+            numOfBeginMarks += eCount.value();
+            if (numOfBeginMarks == 0) {
+                break;
+            }
+
+            ci.SetLower(endPos + tagMarks.end.size());
+            --numOfBeginMarks;
         }
 
         locations.push_back(HtmlElementLocation{
-            {beginPos, beginStopPos + tagMarks.value().beginStop.size() - 1},
-            {beginStopPos + tagMarks.value().beginStop.size(), endPos - 1},
-            {endPos, endPos + tagMarks.value().end.size() - 1}});
+            {beginPos, beginStopPos + tagMarks.beginStop.size() - 1},
+            {beginStopPos + tagMarks.beginStop.size(), endPos - 1},
+            {endPos, endPos + tagMarks.end.size() - 1}});
     }
 
     return locations;
@@ -164,6 +179,52 @@ size_t HtmlParser::FindInInterval(std::string_view val, ClosedInterval ci)
     }
 
     return ci.Lower() + pos;
+}
+
+tl::expected<HtmlParser::HtmlBeginTagPosition, Error> HtmlParser::
+    FindBeginTagMark(const HtmlTagMarks& tagMarks, ClosedInterval& ci)
+{
+    size_t beginPos = FindInInterval(tagMarks.begin, ci);
+    if (beginPos == std::string::npos) {
+        return tl::unexpected(Error::HtmlElementNotFound);
+    }
+    ci.SetLower(beginPos + tagMarks.begin.size());
+
+    size_t beginStopPos = FindInInterval(tagMarks.beginStop, ci);
+    if (beginStopPos == std::string::npos) {
+        return tl::unexpected(Error::IncompleteHtmlElement);
+    }
+    ci.SetLower(beginStopPos + tagMarks.beginStop.size());
+
+    if (beginPos + tagMarks.begin.size() != beginStopPos &&
+        m_htmlPage[beginPos + tagMarks.begin.size()] != ' ') {
+        return tl::unexpected(Error::InvalidHtmlElement);
+    }
+
+    return HtmlBeginTagPosition{beginPos, beginStopPos};
+}
+
+tl::expected<size_t, Error> HtmlParser::CountBeginTagMarks(
+    const HtmlTagMarks& tagMarks,
+    ClosedInterval ci)
+{
+    size_t num = 0;
+
+    while (true) {
+        auto res = FindBeginTagMark(tagMarks, ci);
+        if (res) {
+            num++;
+            continue;
+        }
+
+        if (res.error() == Error::HtmlElementNotFound) {
+            break;
+        }
+
+        return tl::unexpected(res.error());
+    }
+
+    return num;
 }
 
 tl::expected<HtmlParser::HtmlTagMarks, Error> HtmlParser::GetTagMarks(

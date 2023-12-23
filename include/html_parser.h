@@ -48,6 +48,17 @@ private:
         std::string_view end;
     };
 
+    struct HtmlBeginTagPosition
+    {
+        constexpr HtmlBeginTagPosition(size_t bp, size_t bsp)
+            : beginPos(bp), beginStopPos(bsp)
+        {
+        }
+
+        size_t beginPos;
+        size_t beginStopPos;
+    };
+
 public:
     HtmlParser(const std::string& htmlPage) : m_htmlPage(htmlPage)
     {
@@ -68,6 +79,13 @@ public:
 
 private:
     size_t FindInInterval(std::string_view val, ClosedInterval ci);
+
+    tl::expected<HtmlBeginTagPosition, Error> FindBeginTagMark(
+        const HtmlTagMarks& tagMarks,
+        ClosedInterval& ci);
+    tl::expected<size_t, Error> CountBeginTagMarks(
+        const HtmlTagMarks& tagMarks,
+        ClosedInterval ci);
 
     tl::expected<HtmlTagMarks, Error> GetTagMarks(HtmlTag tag);
     tl::expected<std::string, Error> GetAttributeMark(
