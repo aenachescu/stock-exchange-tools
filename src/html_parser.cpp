@@ -237,6 +237,16 @@ tl::expected<HtmlParser::HtmlTagMarks, Error> HtmlParser::GetTagMarks(
         return HtmlTagMarks{"<option", ">", "</option>"};
     case HtmlTag::Table:
         return HtmlTagMarks{"<table", ">", "</table>"};
+    case HtmlTag::Thead:
+        return HtmlTagMarks{"<thead", ">", "</thead>"};
+    case HtmlTag::Tbody:
+        return HtmlTagMarks{"<tbody", ">", "</tbody>"};
+    case HtmlTag::Tr:
+        return HtmlTagMarks{"<tr", ">", "</tr>"};
+    case HtmlTag::Th:
+        return HtmlTagMarks{"<th", ">", "</th>"};
+    case HtmlTag::Td:
+        return HtmlTagMarks{"<td", ">", "</td>"};
     default:
         break;
     }

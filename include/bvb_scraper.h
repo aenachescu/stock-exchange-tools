@@ -24,6 +24,7 @@ public:
 
 private:
     bool IsValidIndexName(const std::string& name);
+    bool IsValidIndexPerformanceValue(const std::string& name);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
@@ -34,6 +35,8 @@ private:
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
 
     tl::expected<IndexesNames, Error> ParseIndexesNames(
+        const std::string& data);
+    tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(
         const std::string& data);
 };
 

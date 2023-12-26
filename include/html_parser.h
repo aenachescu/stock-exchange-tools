@@ -25,6 +25,11 @@ enum class HtmlTag
     Select,
     Option,
     Table,
+    Thead,
+    Tbody,
+    Tr,
+    Th,
+    Td,
 };
 
 enum class HtmlAttribute

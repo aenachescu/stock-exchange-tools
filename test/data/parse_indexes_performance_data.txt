@@ -1,0 +1,38 @@
+<h2 class="styled thin">Indices Performance</h2>
+<div class="wrapped-table smaller-table" style="padding-bottom: 20px">
+    <div>
+	<table class="table table-hover dataTable no-footer generic-table compact" cellspacing="0" border="0" id="gvIndexPerformance" style="width:100%;border-collapse:collapse;">
+		<thead>
+			<tr>
+				<th scope="col">Index</th><th class="text-right numericsp" scope="col">today (%)</th><th class="text-right numericsp" scope="col">1 week (%)</th><th class="text-right numericsp" scope="col">1 month (%)</th><th class="text-right numericsp" scope="col">6 months (%)</th><th class="text-right numericsp" scope="col">1 year (%)</th><th class="text-right numericsp" scope="col">YTD (%)</th>
+			</tr>
+		</thead><tbody>
+			<tr>
+				<td style="font-weight:bold;">BET</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.80</td><td class="numericspvar" align="right">3.76</td><td class="numericspvar" align="right">26.23</td><td class="numericspvar" align="right">25.68</td><td class="numericspvar" align="right">31.05</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-BK</td><td class="numericspvar" align="right">0.69</td><td class="numericspvar" align="right">-0.94</td><td class="numericspvar" align="right">3.25</td><td class="numericspvar" align="right">24.49</td><td class="numericspvar" align="right">26.56</td><td class="numericspvar" align="right">30.10</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-FI</td><td class="numericspvar" align="right">0.82</td><td class="numericspvar" align="right">-0.28</td><td class="numericspvar" align="right">-1.66</td><td class="numericspvar" align="right">18.41</td><td class="numericspvar" align="right">14.87</td><td class="numericspvar" align="right">16.10</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-NG</td><td class="numericspvar" align="right">0.82</td><td class="numericspvar" align="right">-1.52</td><td class="numericspvar" align="right">4.17</td><td class="numericspvar" align="right">20.07</td><td class="numericspvar" align="right">23.61</td><td class="numericspvar" align="right">30.74</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-TR</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.80</td><td class="numericspvar" align="right">3.78</td><td class="numericspvar" align="right">30.61</td><td class="numericspvar" align="right">33.44</td><td class="numericspvar" align="right">39.15</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-TRN</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.80</td><td class="numericspvar" align="right">3.78</td><td class="numericspvar" align="right">28.57</td><td class="numericspvar" align="right">31.07</td><td class="numericspvar" align="right">36.68</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-XT</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.82</td><td class="numericspvar" align="right">3.34</td><td class="numericspvar" align="right">24.74</td><td class="numericspvar" align="right">24.39</td><td class="numericspvar" align="right">29.22</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-XT-TR</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.82</td><td class="numericspvar" align="right">3.36</td><td class="numericspvar" align="right">28.48</td><td class="numericspvar" align="right">31.39</td><td class="numericspvar" align="right">36.49</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BET-XT-TRN</td><td class="numericspvar" align="right">0.75</td><td class="numericspvar" align="right">-0.82</td><td class="numericspvar" align="right">3.36</td><td class="numericspvar" align="right">26.64</td><td class="numericspvar" align="right">29.23</td><td class="numericspvar" align="right">34.24</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BETAeRO</td><td class="numericspvar" align="right">-0.01</td><td class="numericspvar" align="right">-0.30</td><td class="numericspvar" align="right">2.70</td><td class="numericspvar" align="right">13.03</td><td class="numericspvar" align="right">18.02</td><td class="numericspvar" align="right">18.55</td>
+			</tr><tr>
+				<td style="font-weight:bold;">BETPlus</td><td class="numericspvar" align="right">0.70</td><td class="numericspvar" align="right">-0.75</td><td class="numericspvar" align="right">3.60</td><td class="numericspvar" align="right">25.58</td><td class="numericspvar" align="right">24.75</td><td class="numericspvar" align="right">29.67</td>
+			</tr><tr>
+				<td style="font-weight:bold;">ROTX</td><td class="numericspvar" align="right">0.71</td><td class="numericspvar" align="right">-0.43</td><td class="numericspvar" align="right">2.58</td><td class="numericspvar" align="right">25.51</td><td class="numericspvar" align="right">24.54</td><td class="numericspvar" align="right">30.47</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+</div>

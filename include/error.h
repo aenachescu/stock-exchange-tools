@@ -28,6 +28,7 @@ enum class Error : uint32_t
     InvalidHtmlAttribute,
     NoData,
     InvalidData,
+    UnexpectedData,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ERROR_H

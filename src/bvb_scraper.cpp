@@ -15,6 +15,16 @@ tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
     return ParseIndexesNames(rsp.value().body);
 }
 
+tl::expected<IndexesPerformance, Error> BvbScraper::GetIndexesPerformance()
+{
+    auto rsp = GetIndicesProfilesPage();
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    return ParseIndexesPerformance(rsp.value().body);
+}
+
 bool BvbScraper::IsValidIndexName(const std::string& name)
 {
     if (name.empty()) {
@@ -34,6 +44,35 @@ bool BvbScraper::IsValidIndexName(const std::string& name)
         }
 
         return false;
+    }
+
+    return true;
+}
+
+bool BvbScraper::IsValidIndexPerformanceValue(const std::string& name)
+{
+    if (name.size() < 4) {
+        return false;
+    }
+
+    if (! std::isdigit(name[name.size() - 1]) ||
+        ! std::isdigit(name[name.size() - 2]) || name[name.size() - 3] != '.') {
+        return false;
+    }
+
+    size_t i = 0;
+
+    if (name[0] == '-') {
+        if (name.size() < 5) {
+            return false;
+        }
+        i = 1;
+    }
+
+    for (; i < name.size() - 3; i++) {
+        if (! std::isdigit(name[i])) {
+            return false;
+        }
     }
 
     return true;
@@ -146,4 +185,143 @@ tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
     }
 
     return names;
+}
+
+tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
+    const std::string& data)
+{
+    static constexpr std::string_view kTableId = "gvIndexPerformance";
+    static constexpr std::array<std::string_view, 7> kColumnNames = {
+        "Index",
+        "today (%)",
+        "1 week (%)",
+        "1 month (%)",
+        "6 months (%)",
+        "1 year (%)",
+        "YTD (%)"};
+
+    IndexesPerformance res;
+    HtmlParser html(data);
+
+    auto tableLocation =
+        html.FindElement(HtmlTag::Table, {}, HtmlAttribute::Id, kTableId);
+    if (! tableLocation) {
+        return tl::unexpected(tableLocation.error());
+    }
+
+    auto theadLocation =
+        html.FindElement(HtmlTag::Thead, tableLocation.value().data);
+    if (! theadLocation) {
+        return tl::unexpected(theadLocation.error());
+    }
+
+    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation.value().data);
+    if (! trLocation) {
+        return tl::unexpected(trLocation.error());
+    }
+
+    auto thLocations =
+        html.FindAllElements(HtmlTag::Th, trLocation.value().data);
+    if (! thLocations) {
+        return tl::unexpected(thLocations.error());
+    }
+
+    if (thLocations.value().size() != kColumnNames.size()) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    for (size_t i = 0; i < kColumnNames.size(); i++) {
+        std::string val = data.substr(
+            thLocations.value()[i].data.Lower(),
+            thLocations.value()[i].data.Size());
+        if (val != kColumnNames[i]) {
+            return tl::unexpected(Error::InvalidData);
+        }
+    }
+
+    auto tbodyLocation =
+        html.FindElement(HtmlTag::Tbody, tableLocation.value().data);
+    if (! tbodyLocation) {
+        return tl::unexpected(tbodyLocation.error());
+    }
+
+    auto trLocations =
+        html.FindAllElements(HtmlTag::Tr, tbodyLocation.value().data);
+    if (! trLocations) {
+        return tl::unexpected(trLocations.error());
+    }
+
+    for (const auto& loc : trLocations.value()) {
+        auto tdLocations = html.FindAllElements(HtmlTag::Td, loc.data);
+        if (! tdLocations) {
+            return tl::unexpected(tdLocations.error());
+        }
+
+        if (tdLocations.value().size() != kColumnNames.size()) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+
+        IndexPerformance perf;
+        std::string val;
+
+        val = data.substr(
+            tdLocations.value()[0].data.Lower(),
+            tdLocations.value()[0].data.Size());
+        if (! IsValidIndexName(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.name = val;
+
+        val = data.substr(
+            tdLocations.value()[1].data.Lower(),
+            tdLocations.value()[1].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.today = std::stod(val);
+
+        val = data.substr(
+            tdLocations.value()[2].data.Lower(),
+            tdLocations.value()[2].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.one_week = std::stod(val);
+
+        val = data.substr(
+            tdLocations.value()[3].data.Lower(),
+            tdLocations.value()[3].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.one_month = std::stod(val);
+
+        val = data.substr(
+            tdLocations.value()[4].data.Lower(),
+            tdLocations.value()[4].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.six_months = std::stod(val);
+
+        val = data.substr(
+            tdLocations.value()[5].data.Lower(),
+            tdLocations.value()[5].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.one_year = std::stod(val);
+
+        val = data.substr(
+            tdLocations.value()[6].data.Lower(),
+            tdLocations.value()[6].data.Size());
+        if (! IsValidIndexPerformanceValue(val)) {
+            return tl::unexpected(Error::InvalidData);
+        }
+        perf.year_to_date = std::stod(val);
+
+        res.push_back(std::move(perf));
+    }
+
+    return res;
 }
