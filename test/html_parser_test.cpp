@@ -293,6 +293,32 @@ TEST(HtmlParserTest, FindElementsNested)
     ASSERT_EQ(result3.value().endTag.Upper(), 297);
 }
 
+TEST(HtmlParserTest, FindElementNoEndTag)
+{
+    std::string data = "<input/><input id=\"test\"/>";
+    HtmlParser htmlParser(data);
+    tl::expected<HtmlElementLocation, Error> result;
+
+    result = htmlParser.FindElement(HtmlTag::Input);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result.value().beginTag.Lower(), 0);
+    ASSERT_EQ(result.value().beginTag.Upper(), 7);
+    ASSERT_EQ(result.value().data.Lower(), 8);
+    ASSERT_EQ(result.value().data.Upper(), 7);
+    ASSERT_EQ(result.value().endTag.Lower(), 8);
+    ASSERT_EQ(result.value().endTag.Upper(), 7);
+
+    result =
+        htmlParser.FindElement(HtmlTag::Input, {}, HtmlAttribute::Id, "test");
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result.value().beginTag.Lower(), 8);
+    ASSERT_EQ(result.value().beginTag.Upper(), 25);
+    ASSERT_EQ(result.value().data.Lower(), 26);
+    ASSERT_EQ(result.value().data.Upper(), 25);
+    ASSERT_EQ(result.value().endTag.Lower(), 26);
+    ASSERT_EQ(result.value().endTag.Upper(), 25);
+}
+
 TEST(HtmlParserTest, FindAllElements)
 {
     std::string data =
@@ -554,4 +580,44 @@ TEST(HtmlParserTest, FindAllElementsNested)
     ASSERT_EQ(result3.value()[3].data.Upper(), 289);
     ASSERT_EQ(result3.value()[3].endTag.Lower(), 290);
     ASSERT_EQ(result3.value()[3].endTag.Upper(), 297);
+}
+
+TEST(HtmlParserTest, FindAllElementsNoEndTag)
+{
+    std::string data = "<input /><input id=\"test\" />";
+    HtmlParser htmlParser(data);
+    tl::expected<HtmlElementLocations, Error> result;
+
+    result = htmlParser.FindAllElements(HtmlTag::Input);
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result.value().size(), 2);
+
+    ASSERT_EQ(result.value()[0].beginTag.Lower(), 0);
+    ASSERT_EQ(result.value()[0].beginTag.Upper(), 8);
+    ASSERT_EQ(result.value()[0].data.Lower(), 9);
+    ASSERT_EQ(result.value()[0].data.Upper(), 8);
+    ASSERT_EQ(result.value()[0].endTag.Lower(), 9);
+    ASSERT_EQ(result.value()[0].endTag.Upper(), 8);
+
+    ASSERT_EQ(result.value()[1].beginTag.Lower(), 9);
+    ASSERT_EQ(result.value()[1].beginTag.Upper(), 27);
+    ASSERT_EQ(result.value()[1].data.Lower(), 28);
+    ASSERT_EQ(result.value()[1].data.Upper(), 27);
+    ASSERT_EQ(result.value()[1].endTag.Lower(), 28);
+    ASSERT_EQ(result.value()[1].endTag.Upper(), 27);
+
+    result = htmlParser.FindAllElements(
+        HtmlTag::Input,
+        {},
+        HtmlAttribute::Id,
+        "test");
+    ASSERT_TRUE(result.has_value());
+    ASSERT_EQ(result.value().size(), 1);
+
+    ASSERT_EQ(result.value()[0].beginTag.Lower(), 9);
+    ASSERT_EQ(result.value()[0].beginTag.Upper(), 27);
+    ASSERT_EQ(result.value()[0].data.Lower(), 28);
+    ASSERT_EQ(result.value()[0].data.Upper(), 27);
+    ASSERT_EQ(result.value()[0].endTag.Lower(), 28);
+    ASSERT_EQ(result.value()[0].endTag.Upper(), 27);
 }

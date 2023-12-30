@@ -42,6 +42,7 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
         }
         beginPos     = eBeginTagPos.value().beginPos;
         beginStopPos = eBeginTagPos.value().beginStopPos;
+        endPos       = beginStopPos + tagMarks.beginStop.size();
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
@@ -52,7 +53,7 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
             }
         }
 
-        while (true) {
+        while (! tagMarks.end.empty()) {
             endPos = FindInInterval(tagMarks.end, ci);
             if (endPos == std::string::npos) {
                 return tl::unexpected(Error::IncompleteHtmlElement);
@@ -125,6 +126,7 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
         }
         beginPos     = eBeginTagPos.value().beginPos;
         beginStopPos = eBeginTagPos.value().beginStopPos;
+        endPos       = beginStopPos + tagMarks.beginStop.size();
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
@@ -135,7 +137,7 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
             }
         }
 
-        while (true) {
+        while (! tagMarks.end.empty()) {
             endPos = FindInInterval(tagMarks.end, ci);
             if (endPos == std::string::npos) {
                 return tl::unexpected(Error::IncompleteHtmlElement);
@@ -247,6 +249,8 @@ tl::expected<HtmlParser::HtmlTagMarks, Error> HtmlParser::GetTagMarks(
         return HtmlTagMarks{"<th", ">", "</th>"};
     case HtmlTag::Td:
         return HtmlTagMarks{"<td", ">", "</td>"};
+    case HtmlTag::Input:
+        return HtmlTagMarks{"<input", "/>", ""};
     default:
         break;
     }

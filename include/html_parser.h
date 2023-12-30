@@ -30,6 +30,7 @@ enum class HtmlTag
     Tr,
     Th,
     Td,
+    Input,
 };
 
 enum class HtmlAttribute
