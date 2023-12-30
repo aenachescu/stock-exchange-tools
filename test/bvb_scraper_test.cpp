@@ -6,7 +6,8 @@
 
 class BvbScraperTest {
 public:
-    tl::expected<IndexesNames, Error> ParseIndexesNames(const std::string& data)
+    tl::expected<BvbScraper::IndexesDetails, Error> ParseIndexesNames(
+        const std::string& data)
     {
         return m_bvbScraper.ParseIndexesNames(data);
     }
@@ -38,6 +39,7 @@ TEST(BvbScraperTest, ParseIndexesNames)
         "BETPlus",
         "ROTX",
     };
+    IndexName selected = "BET";
     std::ifstream f("test/data/parse_indexes_names_data.txt");
 
     ASSERT_TRUE(f.is_open());
@@ -51,11 +53,13 @@ TEST(BvbScraperTest, ParseIndexesNames)
 
     auto res = bvbTest.ParseIndexesNames(data);
     ASSERT_TRUE(res.has_value());
-    ASSERT_EQ(res.value().size(), expected.size());
+    ASSERT_EQ(res.value().names.size(), expected.size());
 
     for (size_t i = 0; i < expected.size(); i++) {
-        ASSERT_EQ(res.value()[i], expected[i]);
+        ASSERT_EQ(res.value().names[i], expected[i]);
     }
+
+    ASSERT_EQ(res.value().selected, selected);
 }
 
 TEST(BvbScraperTest, ParseIndexesPerformance)

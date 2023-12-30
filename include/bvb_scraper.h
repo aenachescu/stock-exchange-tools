@@ -12,6 +12,23 @@ class BvbScraper : private noncopyable, private nonmovable {
 private:
     friend class BvbScraperTest;
 
+    struct IndexesDetails
+    {
+        IndexesNames names;
+        IndexName selected;
+    };
+
+    struct RequestData
+    {
+        std::string eventTarget;
+        std::string eventArg;
+        std::string eventValidation;
+        std::string lastFocus;
+        std::string viewState;
+        std::string viewStateGenerator;
+        std::string viewStateEncrypted;
+    };
+
 public:
     BvbScraper()  = default;
     ~BvbScraper() = default;
@@ -33,11 +50,20 @@ private:
         HttpVersion version = HttpVersion::http1_1);
 
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
+    tl::expected<HttpResponse, Error> SelectIndex(
+        const IndexName& name,
+        const RequestData& reqData);
 
-    tl::expected<IndexesNames, Error> ParseIndexesNames(
+    tl::expected<RequestData, Error> ParseRequestDataFromMainPage(
+        const std::string& data);
+    tl::expected<RequestData, Error> ParseRequestDataFromPostRsp(
+        const std::string& data);
+
+    tl::expected<IndexesDetails, Error> ParseIndexesNames(
         const std::string& data);
     tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(
         const std::string& data);
+    tl::expected<Index, Error> ParseConstituents(const std::string& data);
 };
 
 #endif // BVB_SCRAPER_H

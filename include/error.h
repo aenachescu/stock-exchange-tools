@@ -29,6 +29,7 @@ enum class Error : uint32_t
     NoData,
     InvalidData,
     UnexpectedData,
+    InvalidArg,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ERROR_H

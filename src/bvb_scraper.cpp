@@ -12,7 +12,12 @@ tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
         return tl::unexpected(rsp.error());
     }
 
-    return ParseIndexesNames(rsp.value().body);
+    auto res = ParseIndexesNames(rsp.value().body);
+    if (! res) {
+        return tl::unexpected(res.error());
+    }
+
+    return std::move(res.value().names);
 }
 
 tl::expected<IndexesPerformance, Error> BvbScraper::GetIndexesPerformance()
@@ -23,6 +28,43 @@ tl::expected<IndexesPerformance, Error> BvbScraper::GetIndexesPerformance()
     }
 
     return ParseIndexesPerformance(rsp.value().body);
+}
+
+tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
+{
+    auto rsp = GetIndicesProfilesPage();
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    if (! indexesDetails) {
+        return tl::unexpected(indexesDetails.error());
+    }
+
+    if (indexesDetails.value().selected == name) {
+        return ParseConstituents(rsp.value().body);
+    }
+
+    auto it = std::find(
+        indexesDetails.value().names.begin(),
+        indexesDetails.value().names.end(),
+        name);
+    if (it == indexesDetails.value().names.end()) {
+        return tl::unexpected(Error::InvalidArg);
+    }
+
+    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    if (! reqData) {
+        tl::unexpected(reqData.error());
+    }
+
+    rsp = SelectIndex(name, reqData.value());
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    return ParseConstituents(rsp.value().body);
 }
 
 bool BvbScraper::IsValidIndexName(const std::string& name)
@@ -149,14 +191,34 @@ tl::expected<HttpResponse, Error> BvbScraper::GetIndicesProfilesPage()
     return std::move(rsp);
 }
 
-tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
+tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
+    const IndexName& name,
+    const RequestData& reqData)
+{
+    return tl::unexpected(Error::InvalidArg);
+}
+
+tl::expected<BvbScraper::RequestData, Error> BvbScraper::
+    ParseRequestDataFromMainPage(const std::string& data)
+{
+    return tl::unexpected(Error::InvalidArg);
+}
+
+tl::expected<BvbScraper::RequestData, Error> BvbScraper::
+    ParseRequestDataFromPostRsp(const std::string& data)
+{
+    return tl::unexpected(Error::InvalidArg);
+}
+
+tl::expected<BvbScraper::IndexesDetails, Error> BvbScraper::ParseIndexesNames(
     const std::string& data)
 {
     static constexpr std::string_view kSelectName =
         "ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
         "IndexControlList$ddIndices";
+    static constexpr std::string_view kSelectedMark = "selected=\"selected\"";
 
-    IndexesNames names;
+    IndexesDetails res;
     HtmlParser html(data);
 
     auto selectLocation =
@@ -181,10 +243,19 @@ tl::expected<IndexesNames, Error> BvbScraper::ParseIndexesNames(
             return tl::unexpected(Error::InvalidData);
         }
 
-        names.push_back(std::move(name));
+        if (res.selected.empty()) {
+            std::string_view slice(
+                data.c_str() + loc.beginTag.Lower(),
+                loc.beginTag.Size());
+            if (slice.find(kSelectedMark) != std::string_view::npos) {
+                res.selected = name;
+            }
+        }
+
+        res.names.push_back(std::move(name));
     }
 
-    return names;
+    return res;
 }
 
 tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
@@ -324,4 +395,10 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
     }
 
     return res;
+}
+
+tl::expected<Index, Error> BvbScraper::ParseConstituents(
+    const std::string& data)
+{
+    return tl::unexpected(Error::InvalidArg);
 }

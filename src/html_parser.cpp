@@ -174,7 +174,7 @@ size_t HtmlParser::FindInInterval(std::string_view val, ClosedInterval ci)
     std::string_view slice(m_htmlPage.c_str() + ci.Lower(), ci.Size());
 
     size_t pos = slice.find(val);
-    if (pos == std::string::npos) {
+    if (pos == std::string_view::npos) {
         return pos;
     }
 
