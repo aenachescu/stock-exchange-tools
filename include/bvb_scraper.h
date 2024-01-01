@@ -4,13 +4,30 @@
 #include "curl_utils.h"
 #include "error.h"
 #include "expected.hpp"
+#include "html_parser.h"
 #include "noncopyable.h"
 #include "nonmovable.h"
 #include "stock_index.h"
 
+#include <functional>
+#include <string>
+#include <string_view>
+
 class BvbScraper : private noncopyable, private nonmovable {
 private:
     friend class BvbScraperTest;
+
+    using TableValueValidator = std::function<bool(const std::string&)>;
+    template <typename Entry>
+    using TableValueSetter = std::function<void(Entry&, const std::string&)>;
+
+    template <typename Entry>
+    struct TableColumnDetails
+    {
+        std::string_view name;
+        TableValueValidator validator;
+        TableValueSetter<Entry> setter;
+    };
 
     struct IndexesDetails
     {
@@ -41,7 +58,7 @@ public:
 
 private:
     bool IsValidIndexName(const std::string& name);
-    bool IsValidIndexPerformanceValue(const std::string& name);
+    bool IsValidIndexPerformanceValue(const std::string& val);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
@@ -58,6 +75,14 @@ private:
         const std::string& data);
     tl::expected<RequestData, Error> ParseRequestDataFromPostRsp(
         const std::string& data);
+
+    template <typename Table, typename Entry>
+    tl::expected<Table, Error> ParseTable(
+        const std::vector<TableColumnDetails<Entry>>& columns,
+        const std::string& data,
+        ClosedInterval ci,
+        HtmlAttribute attr,
+        std::string_view attrValue);
 
     tl::expected<IndexesDetails, Error> ParseIndexesNames(
         const std::string& data);

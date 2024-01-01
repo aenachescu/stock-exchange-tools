@@ -28,6 +28,7 @@ enum class Error : uint32_t
     InvalidHtmlAttribute,
     NoData,
     InvalidData,
+    InvalidValue,
     UnexpectedData,
     InvalidArg,
 };

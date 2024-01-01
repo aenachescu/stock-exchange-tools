@@ -83,7 +83,7 @@ int cmd_print_indexes_performance()
 
     auto r = bvbScraper.GetIndexesPerformance();
     if (! r) {
-        std::cout << "failed to get indexes: "
+        std::cout << "failed to get indexes performance: "
                   << magic_enum::enum_name(r.error()) << std::endl;
         return -1;
     }
