@@ -88,27 +88,47 @@ bool BvbScraper::IsValidIndexName(const std::string& name)
     return true;
 }
 
-bool BvbScraper::IsValidIndexPerformanceValue(const std::string& val)
+bool BvbScraper::IsValidDouble(
+    const std::string& val,
+    size_t decimals,
+    bool allowNegative,
+    bool allowNbsp)
 {
-    if (val.size() < 4) {
+    size_t i        = 0;
+    size_t pointPos = 0;
+
+    if (val.empty()) {
         return false;
     }
 
-    if (! std::isdigit(val[val.size() - 1]) ||
-        ! std::isdigit(val[val.size() - 2]) || val[val.size() - 3] != '.') {
-        return false;
+    if (allowNbsp == true && val == "&nbsp;") {
+        return true;
     }
 
-    size_t i = 0;
-
-    if (val[0] == '-') {
-        if (val.size() < 5) {
-            return false;
-        }
+    if (allowNegative == true && val[0] == '-') {
         i = 1;
     }
 
-    for (; i < val.size() - 3; i++) {
+    if (val.size() < decimals + i + 2) {
+        return false;
+    }
+
+    pointPos = val.size() - decimals - 1;
+
+    if (val[i] == '0') {
+        if (val[i + 1] != '.') {
+            return false;
+        }
+        i += 2;
+    }
+
+    for (; i < val.size(); i++) {
+        if (i == pointPos) {
+            if (val[i] != '.') {
+                return false;
+            }
+            continue;
+        }
         if (! std::isdigit(val[i])) {
             return false;
         }
@@ -352,22 +372,29 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
         [](IndexPerformance& ip, const std::string& val) -> void {             \
         ip.field = func(val);                                                  \
     }
+#define NO_FUNC(val)  val
+#define YTD_FUNC(val) (val == "&nbsp;" ? 0.0 : std::stod(val))
 
-    DEF_SETTER(name, std::string);
+    DEF_SETTER(name, NO_FUNC);
     DEF_SETTER(today, std::stod);
     DEF_SETTER(one_week, std::stod);
     DEF_SETTER(one_month, std::stod);
     DEF_SETTER(six_months, std::stod);
     DEF_SETTER(one_year, std::stod);
-    DEF_SETTER(year_to_date, std::stod);
+    DEF_SETTER(year_to_date, YTD_FUNC);
 
+#undef YTD_FUNC
+#undef NO_FUNC
 #undef DEF_SETTER
 
     TableValueValidator isValidName = [this](const std::string& val) -> bool {
         return this->IsValidIndexName(val);
     };
     TableValueValidator isValidValue = [this](const std::string& val) -> bool {
-        return this->IsValidIndexPerformanceValue(val);
+        return this->IsValidDouble(val, 2, true, false);
+    };
+    TableValueValidator isValidYtd = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, true, true);
     };
 
     std::vector<TableColumnDetails<IndexPerformance>> columns = {
@@ -377,7 +404,7 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
         {"1 month (%)", isValidValue, one_month},
         {"6 months (%)", isValidValue, six_months},
         {"1 year (%)", isValidValue, one_year},
-        {"YTD (%)", isValidValue, year_to_date},
+        {"YTD (%)", isValidYtd, year_to_date},
     };
 
     return ParseTable<IndexesPerformance, IndexPerformance>(

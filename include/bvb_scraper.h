@@ -58,7 +58,11 @@ public:
 
 private:
     bool IsValidIndexName(const std::string& name);
-    bool IsValidIndexPerformanceValue(const std::string& val);
+    bool IsValidDouble(
+        const std::string& val,
+        size_t decimals,
+        bool allowNegative,
+        bool allowNbsp);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
