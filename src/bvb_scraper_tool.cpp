@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <locale>
 #include <magic_enum.hpp>
 #include <sstream>
 
@@ -13,6 +14,36 @@ std::string double_to_string(double d, size_t precision = 2)
     std::stringstream stream;
     stream << std::fixed << std::setprecision(precision) << d;
     return stream.str();
+}
+
+std::string u64_to_string(uint64_t val)
+{
+    struct ThousandsSeparator : std::numpunct<char>
+    {
+        char do_thousands_sep() const
+        {
+            return ',';
+        }
+
+        std::string do_grouping() const
+        {
+            return "\3";
+        }
+    };
+
+    static std::stringstream oss;
+    static bool initialized = false;
+
+    if (initialized == false) {
+        oss.imbue(std::locale(std::locale(), new ThousandsSeparator));
+        initialized = true;
+    }
+
+    oss << val;
+    std::string res = oss.str();
+    oss.str("");
+
+    return std::move(res);
 }
 
 void print_table(const Table& table)
@@ -97,7 +128,8 @@ int cmd_print_indexes_performance()
         "1 month (%)",
         "6 months (%)",
         "1 year (%)",
-        "YTD (%)"});
+        "YTD (%)",
+    });
 
     for (const auto& i : r.value()) {
         table.emplace_back(std::vector<std::string>{
@@ -108,7 +140,8 @@ int cmd_print_indexes_performance()
             double_to_string(i.one_month),
             double_to_string(i.six_months),
             double_to_string(i.one_year),
-            double_to_string(i.year_to_date)});
+            double_to_string(i.year_to_date),
+        });
         id++;
     }
 
@@ -119,7 +152,51 @@ int cmd_print_indexes_performance()
 
 int cmd_print_index_constituents(const IndexName& name)
 {
-    std::cout << "processing " << name << std::endl;
+    BvbScraper bvbScraper;
+    Table table;
+    size_t id = 1;
+
+    auto r = bvbScraper.GetConstituents(name);
+    if (! r) {
+        std::cout << "failed to get " << name
+                  << " constituents: " << magic_enum::enum_name(r.error())
+                  << std::endl;
+        return -1;
+    }
+
+    table.reserve(r.value().companies.size() + 1);
+    table.emplace_back(std::vector<std::string>{
+        "#",
+        "Symbol",
+        "Company",
+        "Shares",
+        "Price",
+        "FF",
+        "FR",
+        "FC",
+        "Weight (%)",
+    });
+
+    for (const auto& i : r.value().companies) {
+        table.emplace_back(std::vector<std::string>{
+            std::to_string(id),
+            i.symbol,
+            i.name,
+            u64_to_string(i.shares),
+            double_to_string(i.reference_price, 4),
+            double_to_string(i.free_float_factor),
+            double_to_string(i.representation_factor, 6),
+            double_to_string(i.price_correction_factor, 6),
+            double_to_string(i.weight),
+        });
+        id++;
+    }
+
+    std::cout << "Index name: " << r.value().name << std::endl;
+    std::cout << "Date: " << r.value().date << std::endl;
+    std::cout << "Reason: " << r.value().reason << std::endl;
+    print_table(table);
+
     return 0;
 }
 

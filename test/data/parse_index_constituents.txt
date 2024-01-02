@@ -1,0 +1,26 @@
+<div class="wrapped-table smaller-table">
+    <div class="special-head col-xs-12 col-lg-12"><h2 class="styled"><b>Index Composition BET-FI 12/29/2023</b></h2></div>
+    <div>
+		<table class="table table-hover dataTable no-footer generic-table compact" cellspacing="0" border="0" id="gvC" style="width:100%;border-collapse:collapse;">
+			<thead>
+				<tr>
+					<th scope="col">Symbol</th><th scope="col">Company</th><th class="dt-head-right numericsp" scope="col">Shares</th><th class="dt-head-right numericsp" scope="col">Ref. price</th><th class="dt-head-right numericsp" scope="col">FF</th><th class="dt-head-right numericsp" scope="col">FR</th><th class="dt-head-right numericsp" scope="col">FC</th><th class="dt-head-right numericsp" scope="col">Weight (%)</th>
+				</tr>
+			</thead><tbody>
+				<tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=FP">FP</a></td><td>FONDUL PROPRIETATEA</td><td class="text-right">5,668,806,128</td><td class="text-right">0.5230</td><td class="text-right">0.60</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">24.85</td>
+				</tr><tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=LION">LION</a></td><td>LION CAPITAL S.A.</td><td class="text-right">507,510,056</td><td class="text-right">2.5900</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">18.36</td>
+				</tr><tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=EVER">EVER</a></td><td>EVERGENT INVESTMENTS S.A.</td><td class="text-right">961,753,592</td><td class="text-right">1.2700</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">17.06</td>
+				</tr><tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SIF4">SIF4</a></td><td>SIF MUNTENIA S.A.</td><td class="text-right">784,645,201</td><td class="text-right">1.5150</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">16.61</td>
+				</tr><tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=INFINITY">INFINITY</a></td><td>INFINITY CAPITAL INVESTMENTS S.A.</td><td class="text-right">500,000,000</td><td class="text-right">1.9000</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">13.27</td>
+				</tr><tr>
+					<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TRANSI">TRANSI</a></td><td>TRANSILVANIA INVESTMENTS ALLIANCE S.A.</td><td class="text-right">2,162,443,797</td><td class="text-right">0.3260</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">9.85</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>

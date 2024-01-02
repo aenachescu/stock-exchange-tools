@@ -21,12 +21,16 @@ private:
     template <typename Entry>
     using TableValueSetter = std::function<void(Entry&, const std::string&)>;
 
+    template <typename Table, typename Entry>
+    using AddEntryToTable = std::function<void(Table&, Entry&&)>;
+
     template <typename Entry>
     struct TableColumnDetails
     {
         std::string_view name;
         TableValueValidator validator;
         TableValueSetter<Entry> setter;
+        HtmlTag innerTag = HtmlTag::None;
     };
 
     struct IndexesDetails
@@ -58,6 +62,9 @@ public:
 
 private:
     bool IsValidIndexName(const std::string& name);
+    bool IsValidCompanySymbol(const std::string& name);
+    bool IsValidCompanyName(const std::string& name);
+    bool IsValidInt(const std::string& value);
     bool IsValidDouble(
         const std::string& val,
         size_t decimals,
@@ -86,13 +93,16 @@ private:
         const std::string& data,
         ClosedInterval ci,
         HtmlAttribute attr,
-        std::string_view attrValue);
+        std::string_view attrValue,
+        AddEntryToTable<Table, Entry> addFunc);
 
     tl::expected<IndexesDetails, Error> ParseIndexesNames(
         const std::string& data);
     tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(
         const std::string& data);
-    tl::expected<Index, Error> ParseConstituents(const std::string& data);
+    tl::expected<Index, Error> ParseConstituents(
+        const std::string& data,
+        const IndexName& indexName);
 };
 
 #endif // BVB_SCRAPER_H

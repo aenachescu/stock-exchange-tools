@@ -1,0 +1,54 @@
+<div class="wrapped-table smaller-table">
+    <div class="special-head col-xs-12 col-lg-12"><h2 class="styled"><b>Index Composition BET 12/29/2023</b></h2></div>
+    <div>
+			<table class="table table-hover dataTable no-footer generic-table compact" cellspacing="0" border="0" id="gvC" style="width:100%;border-collapse:collapse;">
+				<thead>
+					<tr>
+						<th scope="col">Symbol</th><th scope="col">Company</th><th class="dt-head-right numericsp" scope="col">Shares</th><th class="dt-head-right numericsp" scope="col">Ref. price</th><th class="dt-head-right numericsp" scope="col">FF</th><th class="dt-head-right numericsp" scope="col">FR</th><th class="dt-head-right numericsp" scope="col">FC</th><th class="dt-head-right numericsp" scope="col">Weight (%)</th>
+					</tr>
+				</thead><tbody>
+					<tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TLV">TLV</a></td><td>BANCA TRANSILVANIA S.A.</td><td class="text-right">798,658,233</td><td class="text-right">24.2600</td><td class="text-right">1.00</td><td class="text-right">0.667000</td><td class="text-right">1.000000</td><td class="text-right">20.31</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=H2O">H2O</a></td><td>S.P.E.E.H. HIDROELECTRICA S.A.</td><td class="text-right">449,802,567</td><td class="text-right">128.0000</td><td class="text-right">0.20</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">18.10</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SNP">SNP</a></td><td>OMV PETROM S.A.</td><td class="text-right">62,311,667,058</td><td class="text-right">0.5745</td><td class="text-right">0.30</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">16.88</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SNG">SNG</a></td><td>S.N.G.N. ROMGAZ S.A.</td><td class="text-right">385,422,400</td><td class="text-right">50.1000</td><td class="text-right">0.30</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">9.11</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=BRD">BRD</a></td><td>BRD - GROUPE SOCIETE GENERALE S.A.</td><td class="text-right">696,901,518</td><td class="text-right">17.9200</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">7.85</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SNN">SNN</a></td><td>S.N. NUCLEARELECTRICA S.A.</td><td class="text-right">301,643,894</td><td class="text-right">49.1000</td><td class="text-right">0.20</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">4.66</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=FP">FP</a></td><td>FONDUL PROPRIETATEA</td><td class="text-right">5,668,806,128</td><td class="text-right">0.5230</td><td class="text-right">0.60</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.80</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TGN">TGN</a></td><td>S.N.T.G.N. TRANSGAZ S.A.</td><td class="text-right">188,381,504</td><td class="text-right">18.8600</td><td class="text-right">0.50</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.79</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=DIGI">DIGI</a></td><td>Digi Communications N.V.</td><td class="text-right">100,000,000</td><td class="text-right">44.0000</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.77</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=EL">EL</a></td><td>SOCIETATEA ENERGETICA ELECTRICA S.A.</td><td class="text-right">346,443,597</td><td class="text-right">11.4800</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.50</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=ONE">ONE</a></td><td>ONE UNITED PROPERTIES</td><td class="text-right">3,797,654,315</td><td class="text-right">0.9880</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.36</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=M">M</a></td><td>MedLife S.A.</td><td class="text-right">531,481,968</td><td class="text-right">3.9800</td><td class="text-right">0.70</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">2.33</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TTS">TTS</a></td><td>TTS (TRANSPORT TRADE SERVICES)</td><td class="text-right">60,000,000</td><td class="text-right">27.0000</td><td class="text-right">0.70</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">1.78</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TEL">TEL</a></td><td>C.N.T.E.E. TRANSELECTRICA</td><td class="text-right">73,303,142</td><td class="text-right">30.1000</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">1.39</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TRP">TRP</a></td><td>TERAPLAST SA</td><td class="text-right">2,179,000,358</td><td class="text-right">0.5150</td><td class="text-right">0.60</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">1.06</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=BVB">BVB</a></td><td>BURSA DE VALORI BUCURESTI SA</td><td class="text-right">8,049,246</td><td class="text-right">65.6000</td><td class="text-right">1.00</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">0.83</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=WINE">WINE</a></td><td>PURCARI WINERIES PUBLIC COMPANY LIMITED</td><td class="text-right">40,117,500</td><td class="text-right">14.3400</td><td class="text-right">0.80</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">0.72</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=AQ">AQ</a></td><td>AQUILA PART PROD COM</td><td class="text-right">1,200,002,400</td><td class="text-right">0.9200</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">0.69</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SFG">SFG</a></td><td>Sphera Franchise Group</td><td class="text-right">38,799,340</td><td class="text-right">25.7000</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">0.63</td>
+					</tr><tr>
+						<td align="left"><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=COTE">COTE</a></td><td>CONPET SA</td><td class="text-right">8,657,528</td><td class="text-right">81.8000</td><td class="text-right">0.40</td><td class="text-right">1.000000</td><td class="text-right">1.000000</td><td class="text-right">0.45</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+</div>

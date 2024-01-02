@@ -22,6 +22,7 @@ using HtmlElementLocations = std::vector<HtmlElementLocation>;
 
 enum class HtmlTag
 {
+    None,
     Select,
     Option,
     Table,
@@ -31,6 +32,7 @@ enum class HtmlTag
     Th,
     Td,
     Input,
+    A,
 };
 
 enum class HtmlAttribute

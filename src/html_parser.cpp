@@ -251,6 +251,8 @@ tl::expected<HtmlParser::HtmlTagMarks, Error> HtmlParser::GetTagMarks(
         return HtmlTagMarks{"<td", ">", "</td>"};
     case HtmlTag::Input:
         return HtmlTagMarks{"<input", "/>", ""};
+    case HtmlTag::A:
+        return HtmlTagMarks{"<a", ">", "</a>"};
     default:
         break;
     }

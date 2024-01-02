@@ -2,6 +2,25 @@
 
 #include <utility>
 
+#define DEF_SETTER(entry, field, func)                                         \
+    static TableValueSetter<entry> field =                                     \
+        [](entry& e, const std::string& val) -> void { e.field = func(val); }
+#define NO_FUNC(val)             val
+#define NBSP_OR_DOUBLE_FUNC(val) (val == "&nbsp;" ? 0.0 : std::stod(val))
+
+uint64_t StringToU64(const std::string& val)
+{
+    uint64_t res = 0;
+
+    for (char c : val) {
+        if (std::isdigit(c)) {
+            res = res * 10 + (c - '0');
+        }
+    }
+
+    return res;
+}
+
 tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
 {
     auto rsp = GetIndicesProfilesPage();
@@ -40,7 +59,7 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
     }
 
     if (indexesDetails.value().selected == name) {
-        return ParseConstituents(rsp.value().body);
+        return ParseConstituents(rsp.value().body, name);
     }
 
     auto it = std::find(
@@ -53,7 +72,7 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
 
     auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
     if (! reqData) {
-        tl::unexpected(reqData.error());
+        return tl::unexpected(reqData.error());
     }
 
     rsp = SelectIndex(name, reqData.value());
@@ -61,7 +80,7 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
         return tl::unexpected(rsp.error());
     }
 
-    return ParseConstituents(rsp.value().body);
+    return ParseConstituents(rsp.value().body, name);
 }
 
 bool BvbScraper::IsValidIndexName(const std::string& name)
@@ -83,6 +102,86 @@ bool BvbScraper::IsValidIndexName(const std::string& name)
         }
 
         return false;
+    }
+
+    return true;
+}
+
+bool BvbScraper::IsValidCompanySymbol(const std::string& name)
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    for (char c : name) {
+        if (std::isupper(c) || std::isdigit(c)) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+bool BvbScraper::IsValidCompanyName(const std::string& name)
+{
+    if (name.empty()) {
+        return false;
+    }
+
+    if (! std::isalpha(name[0])) {
+        return false;
+    }
+
+    if (! std::isalpha(name.back()) && name.back() != '.' &&
+        name.back() != ')') {
+        return false;
+    }
+
+    for (size_t i = 1; i < name.size() - 1; i++) {
+        if (name[i] == '(' || name[i] == ')') {
+            continue;
+        }
+        if (std::isalpha(name[i])) {
+            continue;
+        }
+        if (name[i] == '-' || name[i] == ' ') {
+            continue;
+        }
+        if (name[i] == '.' && std::isalpha(name[i - 1])) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+bool BvbScraper::IsValidInt(const std::string& value)
+{
+    if (value.empty()) {
+        return false;
+    }
+
+    if (! std::isdigit(value[0]) || value[0] == '0') {
+        return false;
+    }
+
+    int digits = 0;
+    for (auto it = value.rbegin(); it != value.rend(); ++it) {
+        if (digits == 3) {
+            if (*it != ',') {
+                return false;
+            }
+            digits = 0;
+            continue;
+        }
+        if (! std::isdigit(*it)) {
+            return false;
+        }
+        digits++;
     }
 
     return true;
@@ -233,7 +332,8 @@ tl::expected<Table, Error> BvbScraper::ParseTable(
     const std::string& data,
     ClosedInterval ci,
     HtmlAttribute attr,
-    std::string_view attrValue)
+    std::string_view attrValue,
+    AddEntryToTable<Table, Entry> addFunc)
 {
     Table table;
     HtmlParser html(data);
@@ -298,9 +398,24 @@ tl::expected<Table, Error> BvbScraper::ParseTable(
         Entry entry;
 
         for (size_t i = 0; i < tdLocations.value().size(); i++) {
-            std::string val = data.substr(
-                tdLocations.value()[i].data.Lower(),
-                tdLocations.value()[i].data.Size());
+            std::string val;
+            if (columns[i].innerTag != HtmlTag::None) {
+                auto innerLocation = html.FindElement(
+                    columns[i].innerTag,
+                    tdLocations.value()[i].data);
+                if (! innerLocation) {
+                    return tl::unexpected(innerLocation.error());
+                }
+
+                val = data.substr(
+                    innerLocation.value().data.Lower(),
+                    innerLocation.value().data.Size());
+            } else {
+                val = data.substr(
+                    tdLocations.value()[i].data.Lower(),
+                    tdLocations.value()[i].data.Size());
+            }
+
             if (! columns[i].validator(val)) {
                 return tl::unexpected(Error::InvalidValue);
             }
@@ -308,7 +423,7 @@ tl::expected<Table, Error> BvbScraper::ParseTable(
             columns[i].setter(entry, val);
         }
 
-        table.push_back(std::move(entry));
+        addFunc(table, std::move(entry));
     }
 
     return table;
@@ -367,25 +482,13 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
 {
     static constexpr std::string_view kTableId = "gvIndexPerformance";
 
-#define DEF_SETTER(field, func)                                                \
-    static TableValueSetter<IndexPerformance> field =                          \
-        [](IndexPerformance& ip, const std::string& val) -> void {             \
-        ip.field = func(val);                                                  \
-    }
-#define NO_FUNC(val)  val
-#define YTD_FUNC(val) (val == "&nbsp;" ? 0.0 : std::stod(val))
-
-    DEF_SETTER(name, NO_FUNC);
-    DEF_SETTER(today, std::stod);
-    DEF_SETTER(one_week, std::stod);
-    DEF_SETTER(one_month, std::stod);
-    DEF_SETTER(six_months, std::stod);
-    DEF_SETTER(one_year, std::stod);
-    DEF_SETTER(year_to_date, YTD_FUNC);
-
-#undef YTD_FUNC
-#undef NO_FUNC
-#undef DEF_SETTER
+    DEF_SETTER(IndexPerformance, name, NO_FUNC);
+    DEF_SETTER(IndexPerformance, today, std::stod);
+    DEF_SETTER(IndexPerformance, one_week, std::stod);
+    DEF_SETTER(IndexPerformance, one_month, std::stod);
+    DEF_SETTER(IndexPerformance, six_months, std::stod);
+    DEF_SETTER(IndexPerformance, one_year, std::stod);
+    DEF_SETTER(IndexPerformance, year_to_date, NBSP_OR_DOUBLE_FUNC);
 
     TableValueValidator isValidName = [this](const std::string& val) -> bool {
         return this->IsValidIndexName(val);
@@ -395,6 +498,11 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
     };
     TableValueValidator isValidYtd = [this](const std::string& val) -> bool {
         return this->IsValidDouble(val, 2, true, true);
+    };
+
+    AddEntryToTable<IndexesPerformance, IndexPerformance> addFunc =
+        [](IndexesPerformance& table, IndexPerformance&& entry) -> void {
+        table.push_back(std::move(entry));
     };
 
     std::vector<TableColumnDetails<IndexPerformance>> columns = {
@@ -412,11 +520,77 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
         data,
         {},
         HtmlAttribute::Id,
-        kTableId);
+        kTableId,
+        addFunc);
 }
 
 tl::expected<Index, Error> BvbScraper::ParseConstituents(
-    const std::string& data)
+    const std::string& data,
+    const IndexName& indexName)
 {
-    return tl::unexpected(Error::InvalidArg);
+    static constexpr std::string_view kTableId = "gvC";
+
+    DEF_SETTER(Company, symbol, NO_FUNC);
+    DEF_SETTER(Company, name, NO_FUNC);
+    DEF_SETTER(Company, shares, StringToU64);
+    DEF_SETTER(Company, reference_price, std::stod);
+    DEF_SETTER(Company, free_float_factor, std::stod);
+    DEF_SETTER(Company, representation_factor, std::stod);
+    DEF_SETTER(Company, price_correction_factor, std::stod);
+    DEF_SETTER(Company, weight, std::stod);
+
+    TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
+        return this->IsValidCompanySymbol(val);
+    };
+    TableValueValidator isValidName = [this](const std::string& val) -> bool {
+        return this->IsValidCompanyName(val);
+    };
+    TableValueValidator isValidShares = [this](const std::string& val) -> bool {
+        return this->IsValidInt(val);
+    };
+    TableValueValidator isValidPDouble2 =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, false);
+    };
+    TableValueValidator isValidPDouble4 =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 4, false, false);
+    };
+    TableValueValidator isValidPDouble6 =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 6, false, false);
+    };
+
+    AddEntryToTable<Index, Company> addFunc = [](Index& i,
+                                                 Company&& c) -> void {
+        i.companies.push_back(std::move(c));
+    };
+
+    std::vector<TableColumnDetails<Company>> columns = {
+        {"Symbol", isValidSymbol, symbol, HtmlTag::A},
+        {"Company", isValidName, name},
+        {"Shares", isValidShares, shares},
+        {"Ref. price", isValidPDouble4, reference_price},
+        {"FF", isValidPDouble2, free_float_factor},
+        {"FR", isValidPDouble6, representation_factor},
+        {"FC", isValidPDouble6, price_correction_factor},
+        {"Weight (%)", isValidPDouble2, weight},
+    };
+
+    auto res = ParseTable<Index, Company>(
+        columns,
+        data,
+        {},
+        HtmlAttribute::Id,
+        kTableId,
+        addFunc);
+    if (! res) {
+        return tl::unexpected(res.error());
+    }
+
+    res.value().name   = indexName;
+    res.value().date   = "real-time";
+    res.value().reason = "Index Composition";
+
+    return res;
 }
