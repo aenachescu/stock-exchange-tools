@@ -74,14 +74,18 @@ private:
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
         const CurlHeaders& headers,
-        HttpMethod method   = HttpMethod::get,
-        HttpVersion version = HttpVersion::http1_1);
+        HttpMethod method        = HttpMethod::get,
+        HttpVersion version      = HttpVersion::http1_1,
+        const PostData& postData = {});
 
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
     tl::expected<HttpResponse, Error> SelectIndex(
         const IndexName& name,
         const RequestData& reqData);
 
+    tl::expected<std::string_view, Error> ParseRequestDataFieldFromMainPage(
+        const std::string& data,
+        std::string_view id);
     tl::expected<RequestData, Error> ParseRequestDataFromMainPage(
         const std::string& data);
     tl::expected<RequestData, Error> ParseRequestDataFromPostRsp(

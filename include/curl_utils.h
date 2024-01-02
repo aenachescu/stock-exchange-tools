@@ -10,6 +10,7 @@
 #include <expected.hpp>
 #include <string>
 #include <utility>
+#include <vector>
 
 enum class HttpMethod
 {
@@ -23,6 +24,8 @@ enum class HttpVersion
     unknown,
     http1_1,
 };
+
+using PostData = std::vector<std::pair<std::string, std::string>>;
 
 struct HttpResponse
 {
@@ -66,6 +69,7 @@ public:
     Error SetUrl(const char* url);
     Error SetEncoding(const char* encoding);
     Error SetHeaders(const CurlHeaders& headers);
+    Error SetPostData(const PostData& data);
 
     tl::expected<HttpResponse, Error> Perform();
 

@@ -130,7 +130,7 @@ bool BvbScraper::IsValidCompanyName(const std::string& name)
         return false;
     }
 
-    if (! std::isalpha(name[0])) {
+    if (! std::isalnum(name[0])) {
         return false;
     }
 
@@ -143,10 +143,10 @@ bool BvbScraper::IsValidCompanyName(const std::string& name)
         if (name[i] == '(' || name[i] == ')') {
             continue;
         }
-        if (std::isalpha(name[i])) {
+        if (std::isalnum(name[i])) {
             continue;
         }
-        if (name[i] == '-' || name[i] == ' ') {
+        if (name[i] == '-' || name[i] == ' ' || name[i] == '&') {
             continue;
         }
         if (name[i] == '.' && std::isalpha(name[i - 1])) {
@@ -240,7 +240,8 @@ tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
     const char* url,
     const CurlHeaders& headers,
     HttpMethod method,
-    HttpVersion version)
+    HttpVersion version,
+    const PostData& postData)
 {
     Error err = Error::NoError;
     ScopedCurl curl;
@@ -260,6 +261,10 @@ tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
     RETURN_IF_ERROR(curl.SetUrl(url));
     RETURN_IF_ERROR(curl.SetEncoding("gzip"));
     RETURN_IF_ERROR(curl.SetHeaders(headers));
+
+    if (method == HttpMethod::post && postData.empty() == false) {
+        RETURN_IF_ERROR(curl.SetPostData(postData));
+    }
 
 #undef RETURN_IF_ERROR
 
@@ -311,13 +316,130 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
     const IndexName& name,
     const RequestData& reqData)
 {
-    return tl::unexpected(Error::InvalidArg);
+    CurlHeaders headers;
+    Error err = Error::NoError;
+
+    PostData postData = {
+        {"ctl00$ctl00$MasterScriptManager",
+         "ctl00$ctl00$MasterScriptManager|ctl00$ctl00$body$"
+         "rightColumnPlaceHolder$IndexProfilesCurrentValues$IndexControlList$"
+         "ddIndices"},
+        {"__EVENTTARGET",
+         "ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
+         "IndexControlList$ddIndices"},
+        {"__EVENTARGUMENT", reqData.eventArg},
+        {"__LASTFOCUS", reqData.lastFocus},
+        {"__VIEWSTATE", reqData.viewState},
+        {"__VIEWSTATEGENERATOR", reqData.viewStateGenerator},
+        {"__VIEWSTATEENCRYPTED", reqData.viewStateEncrypted},
+        {"__EVENTVALIDATION", reqData.eventValidation},
+        {"autocomplete-form-mob", ""},
+        {"ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
+         "IndexControlList$ddIndices",
+         name},
+        {"gvC_length", "10"},
+        {"__ASYNCPOST", "true"},
+    };
+
+    err = headers.Add({
+        "Host: m.bvb.ro",
+        "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 "
+        "Firefox/111.0",
+        "Accept: */*",
+        "Accept-Language: en-US,en;q=0.5",
+        "Referer: "
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        "Cookie: MobBVBCulturePref=en-US",
+        "X-Requested-With: XMLHttpRequest",
+        "X-MicrosoftAjax: Delta=true",
+        "Cache-Control: no-cache",
+        "Content-Type: application/x-www-form-urlencoded; charset=utf-8",
+        "Origin: https://m.bvb.ro",
+        "Sec-Fetch-Dest: empty",
+        "Sec-Fetch-Mode: cors",
+        "Sec-Fetch-Site: same-origin",
+    });
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    auto rsp = SendHttpRequest(
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        headers,
+        HttpMethod::post,
+        HttpVersion::http1_1,
+        postData);
+    if (! rsp) {
+        return rsp;
+    }
+
+    if (rsp.value().code != 200) {
+        return tl::unexpected(Error::UnexpectedResponseCode);
+    }
+
+    return std::move(rsp);
+}
+
+tl::expected<std::string_view, Error> BvbScraper::
+    ParseRequestDataFieldFromMainPage(
+        const std::string& data,
+        std::string_view id)
+{
+    static constexpr std::string_view kValueTag = "value=\"";
+    static constexpr char kValueEndTag          = '\"';
+
+    HtmlParser html(data);
+
+    auto inputLocation =
+        html.FindElement(HtmlTag::Input, {}, HtmlAttribute::Id, id);
+    if (! inputLocation) {
+        return tl::unexpected(inputLocation.error());
+    }
+
+    std::string_view beginTag(
+        data.c_str() + inputLocation.value().beginTag.Lower(),
+        inputLocation.value().beginTag.Size());
+
+    size_t valueStartPos = beginTag.find(kValueTag);
+    if (valueStartPos == std::string_view::npos) {
+        return tl::unexpected(Error::InvalidHtmlElement);
+    }
+    valueStartPos += kValueTag.size();
+
+    size_t valueEndPos = beginTag.find(kValueEndTag, valueStartPos);
+    if (valueEndPos == std::string_view::npos) {
+        return tl::unexpected(Error::InvalidHtmlElement);
+    }
+
+    return std::string_view(
+        data.c_str() + inputLocation.value().beginTag.Lower() + valueStartPos,
+        valueEndPos - valueStartPos);
 }
 
 tl::expected<BvbScraper::RequestData, Error> BvbScraper::
     ParseRequestDataFromMainPage(const std::string& data)
 {
-    return tl::unexpected(Error::InvalidArg);
+    RequestData reqData;
+    tl::expected<std::string_view, Error> fieldValue;
+
+#define PARSE_FIELD_OR_RETURN_IF_ERROR(field, id)                              \
+    fieldValue = ParseRequestDataFieldFromMainPage(data, id);                  \
+    if (! fieldValue) {                                                        \
+        return tl::unexpected(fieldValue.error());                             \
+    }                                                                          \
+    reqData.field = fieldValue.value();
+
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventTarget, "__EVENTTARGET");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventArg, "__EVENTARGUMENT");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventValidation, "__EVENTVALIDATION");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(lastFocus, "__LASTFOCUS");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(viewState, "__VIEWSTATE");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(viewStateGenerator, "__VIEWSTATEGENERATOR");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(viewStateEncrypted, "__VIEWSTATEENCRYPTED");
+
+#undef PARSE_FIELD_OR_RETURN_IF_ERROR
+
+    return reqData;
 }
 
 tl::expected<BvbScraper::RequestData, Error> BvbScraper::

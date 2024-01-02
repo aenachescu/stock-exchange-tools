@@ -66,8 +66,7 @@ Error ScopedCurl::SetHttpVersion(HttpVersion version)
         return curl_easy_setopt(
                    m_curl.Get(),
                    CURLOPT_HTTP_VERSION,
-                   (long) CURL_HTTP_VERSION_1_1)
-                == CURLE_OK
+                   (long) CURL_HTTP_VERSION_1_1) == CURLE_OK
             ? Error::NoError
             : Error::CurlSetVersionError;
 
@@ -96,8 +95,8 @@ Error ScopedCurl::SetEncoding(const char* encoding)
         return Error::InvalidCurlHandle;
     }
 
-    return curl_easy_setopt(m_curl.Get(), CURLOPT_ACCEPT_ENCODING, encoding)
-            == CURLE_OK
+    return curl_easy_setopt(m_curl.Get(), CURLOPT_ACCEPT_ENCODING, encoding) ==
+            CURLE_OK
         ? Error::NoError
         : Error::CurlSetUrlError;
 }
@@ -108,10 +107,77 @@ Error ScopedCurl::SetHeaders(const CurlHeaders& headers)
         return Error::InvalidCurlHandle;
     }
 
-    return curl_easy_setopt(m_curl.Get(), CURLOPT_HTTPHEADER, headers.Get())
-            == CURLE_OK
+    return curl_easy_setopt(m_curl.Get(), CURLOPT_HTTPHEADER, headers.Get()) ==
+            CURLE_OK
         ? Error::NoError
         : Error::CurlSetUrlError;
+}
+
+Error ScopedCurl::SetPostData(const PostData& data)
+{
+    if (! m_curl) {
+        return Error::InvalidCurlHandle;
+    }
+
+    std::string encodedData;
+    Error err          = Error::NoError;
+    CURLcode curlErr   = CURLE_OK;
+    char* encodedName  = nullptr;
+    char* encodedValue = nullptr;
+
+    for (const auto& entry : data) {
+        encodedName = curl_easy_escape(
+            m_curl.Get(),
+            entry.first.c_str(),
+            entry.first.size());
+        encodedValue = curl_easy_escape(
+            m_curl.Get(),
+            entry.second.c_str(),
+            entry.second.size());
+
+        if (encodedName == nullptr || encodedValue == nullptr) {
+            err = Error::CurlEscapeError;
+        } else {
+            encodedData += encodedName;
+            encodedData += '=';
+            encodedData += encodedValue;
+            encodedData += '&';
+        }
+
+        if (encodedName != nullptr) {
+            curl_free(encodedName);
+            encodedName = nullptr;
+        }
+        if (encodedValue != nullptr) {
+            curl_free(encodedValue);
+            encodedValue = nullptr;
+        }
+
+        if (err != Error::NoError) {
+            return err;
+        }
+    }
+
+    // remove last '&'
+    encodedData.pop_back();
+
+    curlErr = curl_easy_setopt(
+        m_curl.Get(),
+        CURLOPT_POSTFIELDSIZE,
+        encodedData.size());
+    if (curlErr != CURLE_OK) {
+        return Error::CurlSetPostDataSizeError;
+    }
+
+    curlErr = curl_easy_setopt(
+        m_curl.Get(),
+        CURLOPT_COPYPOSTFIELDS,
+        encodedData.c_str());
+    if (curlErr != CURLE_OK) {
+        return Error::CurlSetPostDataError;
+    }
+
+    return Error::NoError;
 }
 
 tl::expected<HttpResponse, Error> ScopedCurl::Perform()
