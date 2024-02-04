@@ -659,6 +659,7 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
     DEF_SETTER(Company, free_float_factor, std::stod);
     DEF_SETTER(Company, representation_factor, std::stod);
     DEF_SETTER(Company, price_correction_factor, std::stod);
+    DEF_SETTER(Company, liquidity_factor, std::stod);
     DEF_SETTER(Company, weight, std::stod);
 
     TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
@@ -699,6 +700,18 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
         {"Weight (%)", isValidPDouble2, weight},
     };
 
+    std::vector<TableColumnDetails<Company>> alternative_columns = {
+        {"Symbol", isValidSymbol, symbol, HtmlTag::A},
+        {"Company", isValidName, name},
+        {"Shares", isValidShares, shares},
+        {"Ref. price", isValidPDouble4, reference_price},
+        {"FF", isValidPDouble2, free_float_factor},
+        {"FR", isValidPDouble6, representation_factor},
+        {"FC", isValidPDouble6, price_correction_factor},
+        {"FL", isValidPDouble2, liquidity_factor},
+        {"Weight (%)", isValidPDouble2, weight},
+    };
+
     auto res = ParseTable<Index, Company>(
         columns,
         data,
@@ -707,7 +720,16 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
         kTableId,
         addFunc);
     if (! res) {
-        return tl::unexpected(res.error());
+        res = ParseTable<Index, Company>(
+            alternative_columns,
+            data,
+            {},
+            HtmlAttribute::Id,
+            kTableId,
+            addFunc);
+        if (! res) {
+            return tl::unexpected(res.error());
+        }
     }
 
     res.value().name   = indexName;

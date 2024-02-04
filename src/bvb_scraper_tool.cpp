@@ -174,6 +174,7 @@ int cmd_print_index_constituents(const IndexName& name)
         "FF",
         "FR",
         "FC",
+        "FL",
         "Weight (%)",
     });
 
@@ -187,6 +188,7 @@ int cmd_print_index_constituents(const IndexName& name)
             double_to_string(i.free_float_factor),
             double_to_string(i.representation_factor, 6),
             double_to_string(i.price_correction_factor, 6),
+            double_to_string(i.liquidity_factor, 2),
             double_to_string(i.weight),
         });
         id++;

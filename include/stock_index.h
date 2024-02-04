@@ -15,6 +15,7 @@ struct Company
     double free_float_factor       = 0.0;
     double representation_factor   = 0.0;
     double price_correction_factor = 0.0;
+    double liquidity_factor        = 1.0;
     double weight                  = 0.0; // percentage
 };
 
