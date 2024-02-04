@@ -150,54 +150,73 @@ int cmd_print_indexes_performance()
     return 0;
 }
 
-int cmd_print_index_constituents(const IndexName& name)
+int cmd_print_index_constituents(const IndexName& indexName)
 {
     BvbScraper bvbScraper;
     Table table;
     size_t id = 1;
+    IndexesNames names;
 
-    auto r = bvbScraper.GetConstituents(name);
-    if (! r) {
-        std::cout << "failed to get " << name
-                  << " constituents: " << magic_enum::enum_name(r.error())
-                  << std::endl;
-        return -1;
+    if (indexName == "--all") {
+        auto r = bvbScraper.GetIndexesNames();
+        if (! r) {
+            std::cout << "failed to get indexes names: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        names = r.value();
+    } else {
+        names.push_back(indexName);
     }
 
-    table.reserve(r.value().companies.size() + 1);
-    table.emplace_back(std::vector<std::string>{
-        "#",
-        "Symbol",
-        "Company",
-        "Shares",
-        "Price",
-        "FF",
-        "FR",
-        "FC",
-        "FL",
-        "Weight (%)",
-    });
+    for (const auto& name : names) {
+        auto r = bvbScraper.GetConstituents(name);
+        if (! r) {
+            std::cout << "failed to get " << name
+                      << " constituents: " << magic_enum::enum_name(r.error())
+                      << std::endl;
+            return -1;
+        }
 
-    for (const auto& i : r.value().companies) {
+        id = 1;
+        table.clear();
+        table.reserve(r.value().companies.size() + 1);
         table.emplace_back(std::vector<std::string>{
-            std::to_string(id),
-            i.symbol,
-            i.name,
-            u64_to_string(i.shares),
-            double_to_string(i.reference_price, 4),
-            double_to_string(i.free_float_factor),
-            double_to_string(i.representation_factor, 6),
-            double_to_string(i.price_correction_factor, 6),
-            double_to_string(i.liquidity_factor, 2),
-            double_to_string(i.weight),
+            "#",
+            "Symbol",
+            "Company",
+            "Shares",
+            "Price",
+            "FF",
+            "FR",
+            "FC",
+            "FL",
+            "Weight (%)",
         });
-        id++;
-    }
 
-    std::cout << "Index name: " << r.value().name << std::endl;
-    std::cout << "Date: " << r.value().date << std::endl;
-    std::cout << "Reason: " << r.value().reason << std::endl;
-    print_table(table);
+        for (const auto& i : r.value().companies) {
+            table.emplace_back(std::vector<std::string>{
+                std::to_string(id),
+                i.symbol,
+                i.name,
+                u64_to_string(i.shares),
+                double_to_string(i.reference_price, 4),
+                double_to_string(i.free_float_factor),
+                double_to_string(i.representation_factor, 6),
+                double_to_string(i.price_correction_factor, 6),
+                double_to_string(i.liquidity_factor, 2),
+                double_to_string(i.weight),
+            });
+            id++;
+        }
+
+        std::cout << "Index name: " << r.value().name << std::endl;
+        std::cout << "Date: " << r.value().date << std::endl;
+        std::cout << "Reason: " << r.value().reason << std::endl;
+        print_table(table);
+        std::cout << std::endl;
+    }
 
     return 0;
 }
