@@ -378,7 +378,7 @@ tl::expected<HttpResponse, Error> BvbScraper::GetIndicesProfilesPage()
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
-    return std::move(rsp);
+    return rsp;
 }
 
 tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
@@ -446,7 +446,7 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
-    return std::move(rsp);
+    return rsp;
 }
 
 tl::expected<HttpResponse, Error> BvbScraper::SelectTradingData(
@@ -512,7 +512,7 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectTradingData(
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
-    return std::move(rsp);
+    return rsp;
 }
 
 tl::expected<std::string_view, Error> BvbScraper::

@@ -41,7 +41,7 @@ std::string double_to_string(
         std::string res = oss.str();
         oss.str("");
 
-        return std::move(res);
+        return res;
     }
 
     std::stringstream stream;
@@ -63,7 +63,7 @@ std::string u64_to_string(uint64_t val)
     std::string res = oss.str();
     oss.str("");
 
-    return std::move(res);
+    return res;
 }
 
 void print_table(const Table& table)
