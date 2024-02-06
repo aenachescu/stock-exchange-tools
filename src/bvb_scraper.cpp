@@ -6,8 +6,10 @@
 #define DEF_SETTER(entry, field, func)                                         \
     static TableValueSetter<entry> field =                                     \
         [](entry& e, const std::string& val) -> void { e.field = func(val); }
-#define NO_FUNC(val)             val
-#define NBSP_OR_DOUBLE_FUNC(val) (val == "&nbsp;" ? 0.0 : std::stod(val))
+#define NO_FUNC(val)              val
+#define NBSP_OR_DOUBLE_FUNC(val)  (val == "&nbsp;" ? 0.0 : std::stod(val))
+#define NBSP_OR_SDOUBLE_FUNC(val) (val == "&nbsp;" ? 0.0 : StringToDouble(val))
+#define NBSP_OR_U64_FUNC(val)     (val == "&nbsp;" ? 0ull : StringToU64(val))
 
 uint64_t StringToU64(const std::string& val)
 {
@@ -212,10 +214,14 @@ bool BvbScraper::IsValidCompanyName(const std::string& name)
     return true;
 }
 
-bool BvbScraper::IsValidInt(const std::string& value)
+bool BvbScraper::IsValidInt(const std::string& value, bool allowNbsp)
 {
     if (value.empty()) {
         return false;
+    }
+
+    if (allowNbsp == true && value == "&nbsp;") {
+        return true;
     }
 
     if (! std::isdigit(value[0]) || value[0] == '0') {
@@ -901,7 +907,7 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
         return this->IsValidCompanyName(val);
     };
     TableValueValidator isValidShares = [this](const std::string& val) -> bool {
-        return this->IsValidInt(val);
+        return this->IsValidInt(val, false);
     };
     TableValueValidator isValidPDouble2 =
         [this](const std::string& val) -> bool {
@@ -979,12 +985,12 @@ tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(
 
     DEF_SETTER(CompanyTradingData, symbol, NO_FUNC);
     DEF_SETTER(CompanyTradingData, price, std::stod);
-    DEF_SETTER(CompanyTradingData, variation, std::stod);
-    DEF_SETTER(CompanyTradingData, trades, StringToU64);
-    DEF_SETTER(CompanyTradingData, volume, StringToU64);
-    DEF_SETTER(CompanyTradingData, value, StringToDouble);
-    DEF_SETTER(CompanyTradingData, lowest_price, std::stod);
-    DEF_SETTER(CompanyTradingData, highest_price, std::stod);
+    DEF_SETTER(CompanyTradingData, variation, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(CompanyTradingData, trades, NBSP_OR_U64_FUNC);
+    DEF_SETTER(CompanyTradingData, volume, NBSP_OR_U64_FUNC);
+    DEF_SETTER(CompanyTradingData, value, NBSP_OR_SDOUBLE_FUNC);
+    DEF_SETTER(CompanyTradingData, lowest_price, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(CompanyTradingData, highest_price, NBSP_OR_DOUBLE_FUNC);
     DEF_SETTER(CompanyTradingData, weight, std::stod);
 
     TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
@@ -994,13 +1000,16 @@ tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(
         return this->IsValidDouble(val, 4, false, false, false);
     };
     TableValueValidator isValidVar = [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, true, false, false);
+        return this->IsValidDouble(val, 2, true, false, true);
     };
     TableValueValidator isValidInt = [this](const std::string& val) -> bool {
-        return this->IsValidInt(val);
+        return this->IsValidInt(val, true);
     };
     TableValueValidator isValidValue = [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, false, true, false);
+        return this->IsValidDouble(val, 2, false, true, true);
+    };
+    TableValueValidator isValidLH = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 4, false, false, true);
     };
     TableValueValidator isValidWeight = [this](const std::string& val) -> bool {
         return this->IsValidDouble(val, 2, false, false, false);
@@ -1018,8 +1027,8 @@ tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(
         {"Trades", isValidInt, trades},
         {"Volume", isValidInt, volume},
         {"Value", isValidValue, value},
-        {"Low", isValidPrice, lowest_price},
-        {"High", isValidPrice, highest_price},
+        {"Low", isValidLH, lowest_price},
+        {"High", isValidLH, highest_price},
         {"Weight (%)", isValidWeight, weight},
     };
 

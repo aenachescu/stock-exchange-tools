@@ -318,3 +318,87 @@ TEST(BvbScraperTest, ParseTradingData)
         ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
     }
 }
+
+TEST(BvbScraperTest, ParseTradingDataWithMissingFields)
+{
+    // clang-format off
+    std::vector<CompanyTradingData> companies = {
+        {"UARG", 1.9800, -1.00, 4ull, 840ull, 1683.20, 1.9800, 2.0200, 0.73},
+        {"SPX", 0.3080, -0.65, 23ull, 100052ull, 29988.52, 0.2940, 0.3080, 1.18},
+        {"SMTL", 62.0000, 6.90, 227ull, 15910ull, 970682.00, 59.0000, 64.0000, 9.99},
+        {"ROC1", 8.9400, -0.22, 3ull, 571ull, 5084.74, 8.9000, 8.9400, 6.56},
+        {"REIT", 0.1380, -0.72, 7ull, 12150ull, 1677.20, 0.1380, 0.1390, 0.54},
+        {"PRSN", 0.2240, 0.45, 24ull, 104075ull, 23026.06, 0.2180, 0.2240, 5.98},
+        {"NRF", 4.2400, -1.40, 15ull, 3725ull, 15799.97, 4.2200, 4.2900, 2.89},
+        {"MILK", 6.7600, 4.64, 47ull, 7893ull, 53179.64, 6.5000, 6.9800, 2.57},
+        {"MET", 0.7450, -1.97, 23ull, 125496ull, 91681.02, 0.7200, 0.7500, 5.50},
+        {"MAMA", 0.2740, 3.79, 4ull, 20569ull, 5436.69, 0.2640, 0.2760, 1.31},
+        {"MAM", 2.3600, -3.28, 6ull, 1635ull, 3917.52, 2.3600, 2.4400, 0.42},
+        {"MACO", 18.4000, 0.55, 5ull, 250ull, 4560.00, 18.1000, 18.4000, 3.72},
+        {"LIH", 2.1400, -1.83, 11ull, 13481ull, 28922.15, 2.1400, 2.1500, 2.05},
+        {"IPRU", 0.9200, 0.00, 5ull, 7580ull, 6978.60, 0.9200, 0.9250, 3.02},
+        {"HUNT", 0.5920, 0.00, 19ull, 22859ull, 13409.53, 0.5760, 0.5920, 1.59},
+        {"HAI", 1.0100, 0.00, 9ull, 2105ull, 2112.68, 0.9960, 1.0100, 8.14},
+        {"GSH", 1.6100, 3.87, 8ull, 48887ull, 74904.95, 1.5300, 1.6200, 2.77},
+        {"FRB", 0.2230, 3.72, 7ull, 8542ull, 1901.89, 0.2170, 0.2250, 0.57},
+        {"FOJE", 14.0000, 2.19, 7ull, 341ull, 4771.30, 13.9000, 14.0000, 3.04},
+        {"ELZY", 14.3000, 5.15, 1ull, 10ull, 143.00, 14.3000, 14.3000, 3.38},
+        {"DN", 1.4200, 2.53, 54ull, 246732ull, 343424.65, 1.3800, 1.4200, 6.21},
+        {"CODE", 2.3100, 0.43, 15ull, 3462ull, 7916.80, 2.2600, 2.3100, 1.50},
+        {"CLAIM", 4.3600, 1.87, 3ull, 566ull, 2462.76, 4.3400, 4.3600, 0.52},
+        {"CHRD", 18.2000, 0.55, 1ull, 50ull, 910.00, 18.2000, 18.2000, 0.34},
+        {"CC", 6.2500, 0.81, 12ull, 737ull, 4672.90, 6.2500, 6.4000, 2.13},
+        {"CACU", 31.8000, 0.00, 0ull, 0ull, 0.00, 0.0000, 0.0000, 0.68},
+        {"BRNA", 82.5000, 5.10, 8ull, 70ull, 5714.00, 81.0000, 82.5000, 3.45},
+        {"BONA", 1.3400, -4.29, 8ull, 4788ull, 6425.65, 1.3300, 1.3700, 0.88},
+        {"BIOW", 0.1640, 0.00, 5ull, 1960ull, 317.28, 0.1570, 0.1640, 0.31},
+        {"BENTO", 11.5500, 0.43, 17ull, 2688ull, 30957.90, 11.4000, 11.6500, 4.60},
+        {"AST", 31.2000, 0.00, 11ull, 490ull, 15283.00, 31.0000, 31.3000, 3.71},
+        {"ASC", 4.5000, 3.21, 23ull, 4708ull, 21157.40, 4.4600, 4.5100, 1.72},
+        {"ALW", 12.6500, -0.39, 12ull, 1063ull, 13429.15, 12.4500, 12.6500, 1.18},
+        {"AG", 1.2300, 0.00, 19ull, 10060ull, 12237.69, 1.2100, 1.2300, 4.37},
+        {"ADISS", 0.8800, -1.12, 5ull, 730ull, 613.60, 0.8400, 0.8800, 0.37},
+        {"AAB", 4.2600, -0.93, 13ull, 3200ull, 12997.08, 4.0200, 4.2600, 0.48},
+        {"2P", 2.5500, 2.00, 6ull, 2019ull, 5136.81, 2.5000, 2.5500, 1.61},
+    };
+    // clang-format on
+    IndexName name   = "BETAero";
+    std::string date = "2/6/2024 6:00:01 PM";
+    BvbScraperTest bvbTest;
+    std::ifstream f(
+        "test/data/parse_index_trading_data_with_missing_fields.txt");
+
+    ASSERT_TRUE(f.is_open());
+
+    std::string data(
+        (std::istreambuf_iterator<char>(f)),
+        std::istreambuf_iterator<char>());
+    f.close();
+
+    ASSERT_TRUE(data.size() > 0);
+
+    auto res = bvbTest.ParseTradingData(data, name);
+    ASSERT_TRUE(res.has_value());
+
+    ASSERT_EQ(res.value().name, name);
+    ASSERT_EQ(res.value().date, date);
+    ASSERT_EQ(res.value().companies.size(), companies.size());
+
+    for (size_t i = 0; i < companies.size(); i++) {
+        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].price, companies[i].price);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].variation,
+            companies[i].variation);
+        ASSERT_EQ(res.value().companies[i].trades, companies[i].trades);
+        ASSERT_EQ(res.value().companies[i].volume, companies[i].volume);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].value, companies[i].value);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].lowest_price,
+            companies[i].lowest_price);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].highest_price,
+            companies[i].highest_price);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+    }
+}

@@ -64,7 +64,7 @@ private:
     bool IsValidIndexName(const std::string& name);
     bool IsValidCompanySymbol(const std::string& name);
     bool IsValidCompanyName(const std::string& name);
-    bool IsValidInt(const std::string& value);
+    bool IsValidInt(const std::string& value, bool allowNbsp);
     bool IsValidDouble(
         const std::string& val,
         size_t decimals,
