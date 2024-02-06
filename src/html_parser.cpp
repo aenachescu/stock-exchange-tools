@@ -253,6 +253,8 @@ tl::expected<HtmlParser::HtmlTagMarks, Error> HtmlParser::GetTagMarks(
         return HtmlTagMarks{"<input", "/>", ""};
     case HtmlTag::A:
         return HtmlTagMarks{"<a", ">", "</a>"};
+    case HtmlTag::Div:
+        return HtmlTagMarks{"<div", ">", "</div>"};
     default:
         break;
     }
@@ -273,6 +275,9 @@ tl::expected<std::string, Error> HtmlParser::GetAttributeMark(
         break;
     case HtmlAttribute::Name:
         attrStr = "name";
+        break;
+    case HtmlAttribute::Class:
+        attrStr = "class";
         break;
     case HtmlAttribute::None:
     default:

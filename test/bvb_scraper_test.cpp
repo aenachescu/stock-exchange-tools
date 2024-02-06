@@ -25,6 +25,13 @@ public:
         return m_bvbScraper.ParseConstituents(data, indexName);
     }
 
+    tl::expected<IndexTradingData, Error> ParseTradingData(
+        const std::string& data,
+        const IndexName& indexName)
+    {
+        return m_bvbScraper.ParseTradingData(data, indexName);
+    }
+
 private:
     BvbScraper m_bvbScraper;
 };
@@ -217,7 +224,7 @@ TEST(BvbScraperTest, ParseConstituents)
         {"BRK", "SSIF BRK FINANCIAL GROUP SA", 337429952ull, 0.1455, 0.90, 1.000000, 1.000000, 0.25, 0.06},
     };
     // clang-format on
-    IndexName name     = "BET-FI";
+    IndexName name     = "BET-BK";
     std::string date   = "real-time";
     std::string reason = "Index Composition";
     BvbScraperTest bvbTest;
@@ -256,6 +263,58 @@ TEST(BvbScraperTest, ParseConstituents)
         ASSERT_DOUBLE_EQ(
             res.value().companies[i].price_correction_factor,
             companies[i].price_correction_factor);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+    }
+}
+
+TEST(BvbScraperTest, ParseTradingData)
+{
+    // clang-format off
+    std::vector<CompanyTradingData> companies = {
+        {"TRANSI", 0.2990, -1.32, 81ull, 1361693ull, 409608.49, 0.2980, 0.3050, 9.30},
+        {"SIF4", 1.5000, -0.66, 21ull, 4550ull, 6788.40, 1.4900, 1.5150, 16.94},
+        {"LION", 2.5500, 2.00, 28ull, 596495ull, 1521062.66, 2.5000, 2.5600, 18.62},
+        {"INFINITY", 1.8150, -0.27, 29ull, 49401ull, 89820.50, 1.8100, 1.8200, 13.06},
+        {"FP", 0.5290, 0.00, 172ull, 873048ull, 461295.39, 0.5270, 0.5290, 25.89},
+        {"EVER", 1.1700, 0.00, 55ull, 168957ull, 197548.59, 1.1650, 1.1700, 16.19},
+    };
+    // clang-format on
+    IndexName name   = "BET-FI";
+    std::string date = "2/6/2024 6:00:01 PM";
+    BvbScraperTest bvbTest;
+    std::ifstream f("test/data/parse_index_trading_data.txt");
+
+    ASSERT_TRUE(f.is_open());
+
+    std::string data(
+        (std::istreambuf_iterator<char>(f)),
+        std::istreambuf_iterator<char>());
+    f.close();
+
+    ASSERT_TRUE(data.size() > 0);
+
+    auto res = bvbTest.ParseTradingData(data, name);
+    ASSERT_TRUE(res.has_value());
+
+    ASSERT_EQ(res.value().name, name);
+    ASSERT_EQ(res.value().date, date);
+    ASSERT_EQ(res.value().companies.size(), companies.size());
+
+    for (size_t i = 0; i < companies.size(); i++) {
+        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].price, companies[i].price);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].variation,
+            companies[i].variation);
+        ASSERT_EQ(res.value().companies[i].trades, companies[i].trades);
+        ASSERT_EQ(res.value().companies[i].volume, companies[i].volume);
+        ASSERT_DOUBLE_EQ(res.value().companies[i].value, companies[i].value);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].lowest_price,
+            companies[i].lowest_price);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].highest_price,
+            companies[i].highest_price);
         ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
     }
 }

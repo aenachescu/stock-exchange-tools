@@ -1,0 +1,34 @@
+<div class="wrapped-table smaller-table">
+    <div class="special-head col-xs-12 col-lg-12">
+        <div class="col-lg-8 col-xs-12 p-0"><h2 class="styled"><b>Transactions on main market for index constituents BET-FI</b></h2></div>
+        <div class="col d-lg-flex">
+            <div class="upHdr d-lg-flex pull-right-lg ">Last update: 2/6/2024 6:00:01 PM
+            &nbsp;<img class="delayedTimeImg" />
+            </div>
+        </div>
+    </div>
+    
+    <div>
+		<table class="table table-hover dataTable no-footer generic-table compact" cellspacing="0" border="0" id="gvTD" style="width:100%;border-collapse:collapse;">
+			<thead>
+				<tr>
+					<th scope="col">Symbol</th><th class="text-right numericsp" scope="col">Price</th><th class="text-right numericsp" scope="col">Var. (%)</th><th class="text-right numericsp" scope="col">Trades</th><th class="text-right numericsp" scope="col">Volume</th><th class="text-right numericsp" scope="col">Value</th><th class="text-right numericsp" scope="col">Low</th><th class="text-right numericsp" scope="col">High</th><th class="text-right numericsp" scope="col">Weight (%)</th>
+				</tr>
+			</thead><tbody>
+				<tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TRANSI">TRANSI</a></td><td align="right">0.2990</td><td class="numericspvar" align="right">-1.32</td><td align="right">81</td><td align="right">1,361,693</td><td align="right">409,608.49</td><td align="right">0.2980</td><td align="right">0.3050</td><td align="right">9.30</td>
+				</tr><tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SIF4">SIF4</a></td><td align="right">1.5000</td><td class="numericspvar" align="right">-0.66</td><td align="right">21</td><td align="right">4,550</td><td align="right">6,788.40</td><td align="right">1.4900</td><td align="right">1.5150</td><td align="right">16.94</td>
+				</tr><tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=LION">LION</a></td><td align="right">2.5500</td><td class="numericspvar" align="right">2.00</td><td align="right">28</td><td align="right">596,495</td><td align="right">1,521,062.66</td><td align="right">2.5000</td><td align="right">2.5600</td><td align="right">18.62</td>
+				</tr><tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=INFINITY">INFINITY</a></td><td align="right">1.8150</td><td class="numericspvar" align="right">-0.27</td><td align="right">29</td><td align="right">49,401</td><td align="right">89,820.50</td><td align="right">1.8100</td><td align="right">1.8200</td><td align="right">13.06</td>
+				</tr><tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=FP">FP</a></td><td align="right">0.5290</td><td class="numericspvar" align="right">0.00</td><td align="right">172</td><td align="right">873,048</td><td align="right">461,295.39</td><td align="right">0.5270</td><td align="right">0.5290</td><td align="right">25.89</td>
+				</tr><tr>
+					<td><a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=EVER">EVER</a></td><td align="right">1.1700</td><td class="numericspvar" align="right">0.00</td><td align="right">55</td><td align="right">168,957</td><td align="right">197,548.59</td><td align="right">1.1650</td><td align="right">1.1700</td><td align="right">16.19</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>

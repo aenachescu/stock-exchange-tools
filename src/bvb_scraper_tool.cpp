@@ -1,5 +1,6 @@
 #include "bvb_scraper.h"
 
+#include <algorithm>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -9,8 +10,40 @@
 
 using Table = std::vector<std::vector<std::string>>;
 
-std::string double_to_string(double d, size_t precision = 2)
+struct ThousandsSeparator : std::numpunct<char>
 {
+    char do_thousands_sep() const
+    {
+        return ',';
+    }
+
+    std::string do_grouping() const
+    {
+        return "\3";
+    }
+};
+
+std::string double_to_string(
+    double d,
+    size_t precision   = 2,
+    bool useSeparators = false)
+{
+    static std::stringstream oss;
+    static bool initialized = false;
+
+    if (useSeparators == true) {
+        if (initialized == false) {
+            oss.imbue(std::locale(std::locale(), new ThousandsSeparator));
+            initialized = true;
+        }
+
+        oss << std::fixed << std::setprecision(precision) << d;
+        std::string res = oss.str();
+        oss.str("");
+
+        return std::move(res);
+    }
+
     std::stringstream stream;
     stream << std::fixed << std::setprecision(precision) << d;
     return stream.str();
@@ -18,19 +51,6 @@ std::string double_to_string(double d, size_t precision = 2)
 
 std::string u64_to_string(uint64_t val)
 {
-    struct ThousandsSeparator : std::numpunct<char>
-    {
-        char do_thousands_sep() const
-        {
-            return ',';
-        }
-
-        std::string do_grouping() const
-        {
-            return "\3";
-        }
-    };
-
     static std::stringstream oss;
     static bool initialized = false;
 
@@ -179,6 +199,11 @@ int cmd_print_index_constituents(const IndexName& indexName)
             return -1;
         }
 
+        std::sort(
+            r.value().companies.begin(),
+            r.value().companies.end(),
+            [](Company a, Company b) { return a.weight > b.weight; });
+
         id = 1;
         table.clear();
         table.reserve(r.value().companies.size() + 1);
@@ -205,7 +230,7 @@ int cmd_print_index_constituents(const IndexName& indexName)
                 double_to_string(i.free_float_factor),
                 double_to_string(i.representation_factor, 6),
                 double_to_string(i.price_correction_factor, 6),
-                double_to_string(i.liquidity_factor, 2),
+                double_to_string(i.liquidity_factor),
                 double_to_string(i.weight),
             });
             id++;
@@ -214,6 +239,83 @@ int cmd_print_index_constituents(const IndexName& indexName)
         std::cout << "Index name: " << r.value().name << std::endl;
         std::cout << "Date: " << r.value().date << std::endl;
         std::cout << "Reason: " << r.value().reason << std::endl;
+        print_table(table);
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
+
+int cmd_print_trading_data(const IndexName& indexName)
+{
+    BvbScraper bvbScraper;
+    Table table;
+    size_t id = 1;
+    IndexesNames names;
+
+    if (indexName == "--all") {
+        auto r = bvbScraper.GetIndexesNames();
+        if (! r) {
+            std::cout << "failed to get indexes names: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        names = r.value();
+    } else {
+        names.push_back(indexName);
+    }
+
+    for (const auto& name : names) {
+        auto r = bvbScraper.GetTradingData(name);
+        if (! r) {
+            std::cout << "failed to get " << name
+                      << " trading data: " << magic_enum::enum_name(r.error())
+                      << std::endl;
+            return -1;
+        }
+
+        std::sort(
+            r.value().companies.begin(),
+            r.value().companies.end(),
+            [](CompanyTradingData a, CompanyTradingData b) {
+                return a.weight > b.weight;
+            });
+
+        id = 1;
+        table.clear();
+        table.reserve(r.value().companies.size() + 1);
+        table.emplace_back(std::vector<std::string>{
+            "#",
+            "Symbol",
+            "Price",
+            "Variation (%)",
+            "Trades",
+            "Volume",
+            "Value",
+            "Low",
+            "High",
+            "Weight (%)",
+        });
+
+        for (const auto& i : r.value().companies) {
+            table.emplace_back(std::vector<std::string>{
+                std::to_string(id),
+                i.symbol,
+                double_to_string(i.price, 4),
+                double_to_string(i.variation),
+                u64_to_string(i.trades),
+                u64_to_string(i.volume),
+                double_to_string(i.value, 2, true),
+                double_to_string(i.lowest_price, 4),
+                double_to_string(i.highest_price, 4),
+                double_to_string(i.weight),
+            });
+            id++;
+        }
+
+        std::cout << "Index name: " << r.value().name << std::endl;
+        std::cout << "Date: " << r.value().date << std::endl;
         print_table(table);
         std::cout << std::endl;
     }
@@ -238,6 +340,12 @@ int main(int argc, char* argv[])
             return -1;
         }
         return cmd_print_index_constituents(argv[2]);
+    } else if (strcmp(argv[1], "--ptd") == 0) {
+        if (argc < 3) {
+            std::cout << "no index name" << std::endl;
+            return -1;
+        }
+        return cmd_print_trading_data(argv[2]);
     }
 
     std::cout << "unknown command" << std::endl;

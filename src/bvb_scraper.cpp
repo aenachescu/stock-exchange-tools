@@ -1,5 +1,6 @@
 #include "bvb_scraper.h"
 
+#include <algorithm>
 #include <utility>
 
 #define DEF_SETTER(entry, field, func)                                         \
@@ -19,6 +20,12 @@ uint64_t StringToU64(const std::string& val)
     }
 
     return res;
+}
+
+double StringToDouble(std::string val)
+{
+    val.erase(std::remove(val.begin(), val.end(), ','), val.end());
+    return std::stod(val);
 }
 
 tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
@@ -81,6 +88,52 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
     }
 
     return ParseConstituents(rsp.value().body, name);
+}
+
+tl::expected<IndexTradingData, Error> BvbScraper::GetTradingData(
+    const IndexName& name)
+{
+    auto rsp = GetIndicesProfilesPage();
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    if (! indexesDetails) {
+        return tl::unexpected(indexesDetails.error());
+    }
+
+    auto it = std::find(
+        indexesDetails.value().names.begin(),
+        indexesDetails.value().names.end(),
+        name);
+    if (it == indexesDetails.value().names.end()) {
+        return tl::unexpected(Error::InvalidArg);
+    }
+
+    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    if (! reqData) {
+        return tl::unexpected(reqData.error());
+    }
+
+    if (indexesDetails.value().selected != name) {
+        rsp = SelectIndex(name, reqData.value());
+        if (! rsp) {
+            return tl::unexpected(rsp.error());
+        }
+
+        reqData = ParseRequestDataFromPostRsp(rsp.value().body);
+        if (! reqData) {
+            return tl::unexpected(reqData.error());
+        }
+    }
+
+    rsp = SelectTradingData(name, reqData.value());
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    return ParseTradingData(rsp.value().body, name);
 }
 
 bool BvbScraper::IsValidIndexName(const std::string& name)
@@ -191,10 +244,12 @@ bool BvbScraper::IsValidDouble(
     const std::string& val,
     size_t decimals,
     bool allowNegative,
+    bool hasSeparators,
     bool allowNbsp)
 {
-    size_t i        = 0;
-    size_t pointPos = 0;
+    size_t firstDigitPos = 0;
+    size_t pointPos      = 0;
+    int digits           = 0;
 
     if (val.empty()) {
         return false;
@@ -205,29 +260,43 @@ bool BvbScraper::IsValidDouble(
     }
 
     if (allowNegative == true && val[0] == '-') {
-        i = 1;
+        firstDigitPos = 1;
     }
 
-    if (val.size() < decimals + i + 2) {
+    if (val.size() < decimals + firstDigitPos + 2) {
         return false;
     }
 
     pointPos = val.size() - decimals - 1;
 
-    if (val[i] == '0') {
-        if (val[i + 1] != '.') {
-            return false;
-        }
-        i += 2;
+    if (val[firstDigitPos] == '0' && val[firstDigitPos + 1] != '.') {
+        return false;
     }
 
-    for (; i < val.size(); i++) {
-        if (i == pointPos) {
-            if (val[i] != '.') {
-                return false;
+    if (val[pointPos] != '.') {
+        return false;
+    }
+
+    for (size_t i = pointPos; i > firstDigitPos; i--) {
+        char c = val[i - 1];
+        if (hasSeparators == true) {
+            if (digits == 3) {
+                if (c != ',') {
+                    return false;
+                }
+                digits = 0;
+                continue;
+            } else {
+                digits++;
             }
-            continue;
         }
+
+        if (! std::isdigit(c)) {
+            return false;
+        }
+    }
+
+    for (size_t i = pointPos + 1; i < val.size(); i++) {
         if (! std::isdigit(val[i])) {
             return false;
         }
@@ -380,6 +449,72 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
     return std::move(rsp);
 }
 
+tl::expected<HttpResponse, Error> BvbScraper::SelectTradingData(
+    const IndexName& name,
+    const RequestData& reqData)
+{
+    CurlHeaders headers;
+    Error err = Error::NoError;
+
+    PostData postData = {
+        {"ctl00$ctl00$MasterScriptManager",
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$upMob|ctl00$"
+         "ctl00$body$rightColumnPlaceHolder$TabsControl$lb1"},
+        {"autocomplete-form-mob", ""},
+        {"ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
+         "IndexControlList$ddIndices",
+         name},
+        {"gvC_length", "10"},
+        {"__EVENTTARGET",
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$lb1"},
+        {"__EVENTARGUMENT", reqData.eventArg},
+        {"__LASTFOCUS", reqData.lastFocus},
+        {"__VIEWSTATE", reqData.viewState},
+        {"__VIEWSTATEGENERATOR", reqData.viewStateGenerator},
+        {"__VIEWSTATEENCRYPTED", reqData.viewStateEncrypted},
+        {"__EVENTVALIDATION", reqData.eventValidation},
+        {"__ASYNCPOST", "true"},
+    };
+
+    err = headers.Add({
+        "Host: m.bvb.ro",
+        "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 "
+        "Firefox/111.0",
+        "Accept: */*",
+        "Accept-Language: en-US,en;q=0.5",
+        "Referer: "
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        "Cookie: MobBVBCulturePref=en-US",
+        "X-Requested-With: XMLHttpRequest",
+        "X-MicrosoftAjax: Delta=true",
+        "Cache-Control: no-cache",
+        "Content-Type: application/x-www-form-urlencoded; charset=utf-8",
+        "Origin: https://m.bvb.ro",
+        "Sec-Fetch-Dest: empty",
+        "Sec-Fetch-Mode: cors",
+        "Sec-Fetch-Site: same-origin",
+    });
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    auto rsp = SendHttpRequest(
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        headers,
+        HttpMethod::post,
+        HttpVersion::http1_1,
+        postData);
+    if (! rsp) {
+        return rsp;
+    }
+
+    if (rsp.value().code != 200) {
+        return tl::unexpected(Error::UnexpectedResponseCode);
+    }
+
+    return std::move(rsp);
+}
+
 tl::expected<std::string_view, Error> BvbScraper::
     ParseRequestDataFieldFromMainPage(
         const std::string& data,
@@ -442,10 +577,107 @@ tl::expected<BvbScraper::RequestData, Error> BvbScraper::
     return reqData;
 }
 
+tl::expected<std::string_view, Error> BvbScraper::
+    ParseRequestDataFieldFromPostRsp(
+        const std::string& data,
+        std::string_view id)
+{
+    size_t idStartPos = data.find(id);
+    if (idStartPos == std::string::npos) {
+        return tl::unexpected(Error::NoData);
+    }
+
+    size_t dataStartPos = idStartPos + id.size();
+    size_t dataEndPos   = data.find('|', dataStartPos);
+    if (dataEndPos == std::string::npos) {
+        return tl::unexpected(Error::InvalidData);
+    }
+
+    return std::string_view(
+        data.c_str() + dataStartPos,
+        dataEndPos - dataStartPos);
+}
+
 tl::expected<BvbScraper::RequestData, Error> BvbScraper::
     ParseRequestDataFromPostRsp(const std::string& data)
 {
-    return tl::unexpected(Error::InvalidArg);
+    RequestData reqData;
+    tl::expected<std::string_view, Error> fieldValue;
+
+#define PARSE_FIELD_OR_RETURN_IF_ERROR(field, id)                              \
+    fieldValue = ParseRequestDataFieldFromPostRsp(data, id);                   \
+    if (! fieldValue) {                                                        \
+        return tl::unexpected(fieldValue.error());                             \
+    }                                                                          \
+    reqData.field = fieldValue.value();
+
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventTarget, "|__EVENTTARGET|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventArg, "|__EVENTARGUMENT|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(eventValidation, "|__EVENTVALIDATION|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(lastFocus, "|__LASTFOCUS|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(viewState, "|__VIEWSTATE|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(
+        viewStateGenerator,
+        "|__VIEWSTATEGENERATOR|");
+    PARSE_FIELD_OR_RETURN_IF_ERROR(
+        viewStateEncrypted,
+        "|__VIEWSTATEENCRYPTED|");
+
+#undef PARSE_FIELD_OR_RETURN_IF_ERROR
+
+    return reqData;
+}
+
+tl::expected<std::string_view, Error> BvbScraper::ParseTradingDataTime(
+    const std::string& data)
+{
+    static constexpr std::string_view kLastUpdateDivClass =
+        "upHdr d-lg-flex pull-right-lg ";
+    static constexpr std::string_view kTimeBeginMark = "Last update: ";
+    static constexpr std::string_view kTimeEndMark   = "&nbsp";
+
+    HtmlParser html(data);
+
+    auto divLocation = html.FindElement(
+        HtmlTag::Div,
+        {},
+        HtmlAttribute::Class,
+        kLastUpdateDivClass);
+    if (! divLocation) {
+        return tl::unexpected(divLocation.error());
+    }
+
+    std::string_view divData(
+        data.c_str() + divLocation.value().data.Lower(),
+        divLocation.value().data.Size());
+
+    size_t beginMarkPos = divData.find(kTimeBeginMark);
+    if (beginMarkPos == std::string_view::npos) {
+        return tl::unexpected(Error::InvalidData);
+    }
+    beginMarkPos += kTimeBeginMark.size();
+
+    size_t endMarkPos = divData.find(kTimeEndMark, beginMarkPos);
+    if (endMarkPos == std::string_view::npos) {
+        return tl::unexpected(Error::InvalidData);
+    }
+
+    std::string_view date(
+        divData.data() + beginMarkPos,
+        endMarkPos - beginMarkPos);
+    size_t numOfSpaces = 0;
+
+    for (auto it = date.rbegin(); it != date.rend(); ++it) {
+        if (std::isspace(static_cast<unsigned char>(*it))) {
+            numOfSpaces++;
+        } else {
+            break;
+        }
+    }
+
+    return std::string_view{
+        divData.data() + beginMarkPos,
+        endMarkPos - beginMarkPos - numOfSpaces};
 }
 
 template <typename Table, typename Entry>
@@ -616,10 +848,10 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
         return this->IsValidIndexName(val);
     };
     TableValueValidator isValidValue = [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, true, false);
+        return this->IsValidDouble(val, 2, true, false, false);
     };
     TableValueValidator isValidYtd = [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, true, true);
+        return this->IsValidDouble(val, 2, true, false, true);
     };
 
     AddEntryToTable<IndexesPerformance, IndexPerformance> addFunc =
@@ -673,15 +905,15 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
     };
     TableValueValidator isValidPDouble2 =
         [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, false, false);
+        return this->IsValidDouble(val, 2, false, false, false);
     };
     TableValueValidator isValidPDouble4 =
         [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 4, false, false);
+        return this->IsValidDouble(val, 4, false, false, false);
     };
     TableValueValidator isValidPDouble6 =
         [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 6, false, false);
+        return this->IsValidDouble(val, 6, false, false, false);
     };
 
     AddEntryToTable<Index, Company> addFunc = [](Index& i,
@@ -735,6 +967,80 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
     res.value().name   = indexName;
     res.value().date   = "real-time";
     res.value().reason = "Index Composition";
+
+    return res;
+}
+
+tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(
+    const std::string& data,
+    const IndexName& indexName)
+{
+    static constexpr std::string_view kTableId = "gvTD";
+
+    DEF_SETTER(CompanyTradingData, symbol, NO_FUNC);
+    DEF_SETTER(CompanyTradingData, price, std::stod);
+    DEF_SETTER(CompanyTradingData, variation, std::stod);
+    DEF_SETTER(CompanyTradingData, trades, StringToU64);
+    DEF_SETTER(CompanyTradingData, volume, StringToU64);
+    DEF_SETTER(CompanyTradingData, value, StringToDouble);
+    DEF_SETTER(CompanyTradingData, lowest_price, std::stod);
+    DEF_SETTER(CompanyTradingData, highest_price, std::stod);
+    DEF_SETTER(CompanyTradingData, weight, std::stod);
+
+    TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
+        return this->IsValidCompanySymbol(val);
+    };
+    TableValueValidator isValidPrice = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 4, false, false, false);
+    };
+    TableValueValidator isValidVar = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, true, false, false);
+    };
+    TableValueValidator isValidInt = [this](const std::string& val) -> bool {
+        return this->IsValidInt(val);
+    };
+    TableValueValidator isValidValue = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, true, false);
+    };
+    TableValueValidator isValidWeight = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, false, false);
+    };
+
+    AddEntryToTable<IndexTradingData, CompanyTradingData> addFunc =
+        [](IndexTradingData& i, CompanyTradingData&& c) -> void {
+        i.companies.push_back(std::move(c));
+    };
+
+    std::vector<TableColumnDetails<CompanyTradingData>> columns = {
+        {"Symbol", isValidSymbol, symbol, HtmlTag::A},
+        {"Price", isValidPrice, price},
+        {"Var. (%)", isValidVar, variation},
+        {"Trades", isValidInt, trades},
+        {"Volume", isValidInt, volume},
+        {"Value", isValidValue, value},
+        {"Low", isValidPrice, lowest_price},
+        {"High", isValidPrice, highest_price},
+        {"Weight (%)", isValidWeight, weight},
+    };
+
+    auto res = ParseTable<IndexTradingData, CompanyTradingData>(
+        columns,
+        data,
+        {},
+        HtmlAttribute::Id,
+        kTableId,
+        addFunc);
+    if (! res) {
+        return tl::unexpected(res.error());
+    }
+
+    auto date = ParseTradingDataTime(data);
+    if (! date) {
+        return tl::unexpected(date.error());
+    }
+
+    res.value().name = indexName;
+    res.value().date = date.value();
 
     return res;
 }

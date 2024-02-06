@@ -69,6 +69,7 @@ private:
         const std::string& val,
         size_t decimals,
         bool allowNegative,
+        bool hasSeparators,
         bool allowNbsp);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
@@ -82,13 +83,22 @@ private:
     tl::expected<HttpResponse, Error> SelectIndex(
         const IndexName& name,
         const RequestData& reqData);
+    tl::expected<HttpResponse, Error> SelectTradingData(
+        const IndexName& name,
+        const RequestData& reqData);
 
     tl::expected<std::string_view, Error> ParseRequestDataFieldFromMainPage(
         const std::string& data,
         std::string_view id);
     tl::expected<RequestData, Error> ParseRequestDataFromMainPage(
         const std::string& data);
+    tl::expected<std::string_view, Error> ParseRequestDataFieldFromPostRsp(
+        const std::string& data,
+        std::string_view id);
     tl::expected<RequestData, Error> ParseRequestDataFromPostRsp(
+        const std::string& data);
+
+    tl::expected<std::string_view, Error> ParseTradingDataTime(
         const std::string& data);
 
     template <typename Table, typename Entry>
@@ -105,6 +115,9 @@ private:
     tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(
         const std::string& data);
     tl::expected<Index, Error> ParseConstituents(
+        const std::string& data,
+        const IndexName& indexName);
+    tl::expected<IndexTradingData, Error> ParseTradingData(
         const std::string& data,
         const IndexName& indexName);
 };

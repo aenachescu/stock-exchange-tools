@@ -33,6 +33,7 @@ enum class HtmlTag
     Td,
     Input,
     A,
+    Div,
 };
 
 enum class HtmlAttribute
@@ -40,6 +41,7 @@ enum class HtmlAttribute
     None,
     Id,
     Name,
+    Class,
 };
 
 class HtmlParser : private noncopyable, private nonmovable {
