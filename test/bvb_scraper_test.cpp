@@ -25,6 +25,13 @@ public:
         return m_bvbScraper.ParseConstituents(data, indexName);
     }
 
+    tl::expected<Indexes, Error> ParseAdjustmentsHistory(
+        const std::string& data,
+        const IndexName& indexName)
+    {
+        return m_bvbScraper.ParseAdjustmentsHistory(data, indexName);
+    }
+
     tl::expected<IndexTradingData, Error> ParseTradingData(
         const std::string& data,
         const IndexName& indexName)
@@ -184,6 +191,9 @@ TEST(BvbScraperTest, ParseConstituentsSelected)
         ASSERT_DOUBLE_EQ(
             res.value().companies[i].price_correction_factor,
             companies[i].price_correction_factor);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].liquidity_factor,
+            companies[i].liquidity_factor);
         ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
     }
 }
@@ -263,6 +273,9 @@ TEST(BvbScraperTest, ParseConstituents)
         ASSERT_DOUBLE_EQ(
             res.value().companies[i].price_correction_factor,
             companies[i].price_correction_factor);
+        ASSERT_DOUBLE_EQ(
+            res.value().companies[i].liquidity_factor,
+            companies[i].liquidity_factor);
         ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
     }
 }
@@ -400,5 +413,311 @@ TEST(BvbScraperTest, ParseTradingDataWithMissingFields)
             res.value().companies[i].highest_price,
             companies[i].highest_price);
         ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+    }
+}
+
+TEST(BvbScraperTest, ParseAdjustmentsHistorySelected)
+{
+    // clang-format off
+    Indexes expectedIndexes = {
+        {
+            "BET", "12/8/2023", "Periodical adjustment",
+            {
+                {"TLV",  "BANCA TRANSILVANIA S.A.",                 798658233ull,   23.3400,  1.00, 0.667000, 1.000000, 1.00, 19.99},
+                {"H2O",  "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   126.4000, 0.20, 1.000000, 1.000000, 1.00, 18.28},
+                {"SNP",  "OMV PETROM S.A.",                         62311667058ull, 0.5600,   0.30, 1.000000, 1.000000, 1.00, 16.83},
+                {"SNG",  "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   49.8500,  0.30, 1.000000, 1.000000, 1.00, 9.26},
+                {"BRD",  "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   17.4800,  0.40, 1.000000, 1.000000, 1.00, 7.83},
+                {"SNN",  "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   49.2500,  0.20, 1.000000, 1.000000, 1.00, 4.78},
+                {"TGN",  "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   19.2200,  0.50, 1.000000, 1.000000, 1.00, 2.91},
+                {"DIGI", "Digi Communications N.V.",                100000000ull,   41.9000,  0.40, 1.000000, 1.000000, 1.00, 2.69},
+                {"FP",   "FONDUL PROPRIETATEA",                     5668806128ull,  0.4925,   0.60, 1.000000, 1.000000, 1.00, 2.69},
+                {"M",    "MedLife S.A.",                            531481968ull,   4.2000,   0.70, 1.000000, 1.000000, 1.00, 2.51},
+                {"ONE",  "ONE UNITED PROPERTIES",                   3797654315ull,  0.9600,   0.40, 1.000000, 1.000000, 1.00, 2.34},
+                {"EL",   "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   10.5200,  0.40, 1.000000, 1.000000, 1.00, 2.34},
+                {"TTS",  "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    27.0000,  0.70, 1.000000, 1.000000, 1.00, 1.82},
+                {"TEL",  "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    29.5000,  0.40, 1.000000, 1.000000, 1.00, 1.39},
+                {"TRP",  "TERAPLAST SA",                            2179000358ull,  0.4800,   0.60, 1.000000, 1.000000, 1.00, 1.01},
+                {"BVB",  "BURSA DE VALORI BUCURESTI SA",            8049246ull,     68.0000,  1.00, 1.000000, 1.000000, 1.00, 0.88},
+                {"WINE", "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    13.9000,  0.80, 1.000000, 1.000000, 1.00, 0.72},
+                {"AQ",   "AQUILA PART PROD COM",                    1200002400ull,  0.8900,   0.40, 1.000000, 1.000000, 1.00, 0.69},
+                {"SFG",  "Sphera Franchise Group",                  38799340ull,    23.7000,  0.40, 1.000000, 1.000000, 1.00, 0.59},
+                {"COTE", "CONPET SA",                               8657528ull,     80.0000,  0.40, 1.000000, 1.000000, 1.00, 0.45},
+            }
+        },
+        {
+            "BET", "9/8/2023", "Periodical adjustment",
+            {
+                {"TLV",  "BANCA TRANSILVANIA S.A.",                 798658233ull,   21.9000,  1.00, 0.658000, 1.000000, 1.00, 19.99},
+                {"SNP",  "OMV PETROM S.A.",                         62311667058ull, 0.5640,   0.30, 1.000000, 1.000000, 1.00, 18.31},
+                {"H2O",  "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   113.8000, 0.20, 1.000000, 1.000000, 1.00, 17.78},
+                {"SNG",  "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   42.1000,  0.30, 1.000000, 1.000000, 1.00, 8.45},
+                {"BRD",  "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   14.6600,  0.40, 1.000000, 1.000000, 1.00, 7.10},
+                {"SNN",  "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   46.9500,  0.20, 1.000000, 1.000000, 1.00, 4.92},
+                {"FP",   "FONDUL PROPRIETATEA",                     6217825213ull,  0.3860,   0.80, 1.000000, 1.000000, 1.00, 3.33},
+                {"M",    "MedLife S.A.",                            531481968ull,   4.5450,   0.70, 1.000000, 1.000000, 1.00, 2.94},
+                {"TGN",  "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   17.7400,  0.50, 1.000000, 1.000000, 1.00, 2.90},
+                {"DIGI", "Digi Communications N.V.",                100000000ull,   35.9000,  0.40, 1.000000, 1.000000, 1.00, 2.49},
+                {"ONE",  "ONE UNITED PROPERTIES",                   3797654315ull,  0.9180,   0.40, 1.000000, 1.000000, 1.00, 2.42},
+                {"EL",   "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   9.5100,   0.40, 1.000000, 1.000000, 1.00, 2.29},
+                {"TTS",  "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    20.2000,  0.70, 1.000000, 1.000000, 1.00, 1.47},
+                {"TEL",  "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    27.0000,  0.40, 1.000000, 1.000000, 1.00, 1.37},
+                {"TRP",  "TERAPLAST SA",                            2179000358ull,  0.4700,   0.60, 1.000000, 1.000000, 1.00, 1.07},
+                {"AQ",   "AQUILA PART PROD COM",                    1200002400ull,  0.8880,   0.40, 1.000000, 1.000000, 1.00, 0.74},
+                {"BVB",  "BURSA DE VALORI BUCURESTI SA",            8049246ull,     52.2000,  1.00, 1.000000, 1.000000, 1.00, 0.73},
+                {"WINE", "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    12.2000,  0.80, 1.000000, 1.000000, 1.00, 0.68},
+                {"SFG",  "Sphera Franchise Group",                  38799340ull,    20.6000,  0.40, 1.000000, 1.000000, 1.00, 0.56},
+                {"COTE", "CONPET SA",                               8657528ull,     74.4000,  0.40, 1.000000, 1.000000, 1.00, 0.45},
+            }
+        },
+        {
+            "BET", "9/6/2023", "Operational adjustment FP",
+            {
+                {"TLV",  "BANCA TRANSILVANIA S.A.",                 707658233ull,   21.6000,  1.00, 0.856000, 1.128593, 1.00, 24.83},
+                {"SNP",  "OMV PETROM S.A.",                         62311667058ull, 0.5555,   0.30, 1.000000, 1.000000, 1.00, 17.46},
+                {"H2O",  "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   113.7000, 0.20, 1.000000, 1.000000, 1.00, 17.20},
+                {"SNG",  "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   41.6500,  0.30, 1.000000, 1.000000, 1.00, 8.10},
+                {"BRD",  "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   14.4800,  0.40, 1.000000, 1.000000, 1.00, 6.79},
+                {"SNN",  "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   45.9000,  0.20, 1.000000, 1.000000, 1.00, 4.66},
+                {"M",    "MedLife S.A.",                            132870492ull,   4.5450,   0.70, 1.000000, 4.000000, 1.00, 2.84},
+                {"TGN",  "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   16.9600,  0.50, 1.000000, 1.000000, 1.00, 2.69},
+                {"FP",   "FONDUL PROPRIETATEA",                     6217825213ull,  0.2615,   0.90, 1.000000, 1.000000, 1.00, 2.46},
+                {"DIGI", "Digi Communications N.V.",                100000000ull,   35.9000,  0.40, 1.000000, 1.000000, 1.00, 2.41},
+                {"EL",   "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   9.4000,   0.40, 1.000000, 1.000000, 1.00, 2.19},
+                {"ONE",  "ONE UNITED PROPERTIES",                   3702818586ull,  0.9050,   0.30, 1.000000, 1.000000, 1.00, 1.69},
+                {"TTS",  "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    19.3500,  0.70, 1.000000, 1.000000, 1.00, 1.37},
+                {"TEL",  "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    26.4000,  0.40, 1.000000, 1.000000, 1.00, 1.30},
+                {"TRP",  "TERAPLAST SA",                            2179000358ull,  0.4640,   0.60, 1.000000, 1.000000, 1.00, 1.02},
+                {"BVB",  "BURSA DE VALORI BUCURESTI SA",            8049246ull,     51.8000,  1.00, 1.000000, 1.000000, 1.00, 0.70},
+                {"AQ",   "AQUILA PART PROD COM",                    1200002400ull,  0.8680,   0.40, 1.000000, 1.000000, 1.00, 0.70},
+                {"WINE", "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    11.8000,  0.80, 1.000000, 1.000000, 1.00, 0.64},
+                {"SFG",  "Sphera Franchise Group",                  38799340ull,    20.4000,  0.40, 1.000000, 1.000000, 1.00, 0.53},
+                {"COTE", "CONPET SA",                               8657528ull,     73.0000,  0.40, 1.000000, 1.000000, 1.00, 0.43},
+            }
+        },
+    };
+    // clang-format on
+    IndexName name = "BET";
+    BvbScraperTest bvbTest;
+    std::ifstream f("test/data/parse_index_adjustments_history_selected.txt");
+
+    ASSERT_TRUE(f.is_open());
+
+    std::string data(
+        (std::istreambuf_iterator<char>(f)),
+        std::istreambuf_iterator<char>());
+    f.close();
+
+    ASSERT_TRUE(data.size() > 0);
+
+    auto res = bvbTest.ParseAdjustmentsHistory(data, name);
+    ASSERT_TRUE(res.has_value());
+    ASSERT_EQ(res.value().size(), expectedIndexes.size());
+
+    for (size_t i = 0; i < expectedIndexes.size(); i++) {
+        const auto& index = res.value()[i];
+
+        ASSERT_EQ(index.name, expectedIndexes[i].name);
+        ASSERT_EQ(index.date, expectedIndexes[i].date);
+        ASSERT_EQ(index.reason, expectedIndexes[i].reason);
+        ASSERT_EQ(index.companies.size(), expectedIndexes[i].companies.size());
+
+        for (size_t j = 0; j < index.companies.size(); j++) {
+            ASSERT_EQ(
+                index.companies[j].symbol,
+                expectedIndexes[i].companies[j].symbol);
+            ASSERT_EQ(
+                index.companies[j].name,
+                expectedIndexes[i].companies[j].name);
+            ASSERT_EQ(
+                index.companies[j].shares,
+                expectedIndexes[i].companies[j].shares);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].reference_price,
+                expectedIndexes[i].companies[j].reference_price);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].free_float_factor,
+                expectedIndexes[i].companies[j].free_float_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].representation_factor,
+                expectedIndexes[i].companies[j].representation_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].price_correction_factor,
+                expectedIndexes[i].companies[j].price_correction_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].liquidity_factor,
+                expectedIndexes[i].companies[j].liquidity_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].weight,
+                expectedIndexes[i].companies[j].weight);
+        }
+    }
+}
+
+TEST(BvbScraperTest, ParseAdjustmentsHistory)
+{
+    // clang-format off
+    Indexes expectedIndexes = {
+        {
+            "BET-BK", "12/8/2023", "Periodical adjustment",
+            {
+                {"TLV",      "BANCA TRANSILVANIA S.A.",                 798658233ull,   23.3400,  1.00, 0.066353, 1.000000, 1.00, 7.25},
+                {"H2O",      "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   126.4000, 0.20, 0.108773, 1.000000, 1.00, 7.25},
+                {"SNP",      "OMV PETROM S.A.",                         62311667058ull, 0.5600,   0.30, 0.118152, 1.000000, 1.00, 7.25},
+                {"EBS",      "Erste Group Bank AG",                     429800000ull,   183.0000, 0.80, 0.026209, 1.000000, 0.75, 7.25},
+                {"SNN",      "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   49.2500,  0.20, 0.269868, 1.000000, 1.00, 4.70},
+                {"M",        "MedLife S.A.",                            531481968ull,   4.2000,   0.70, 0.684203, 1.000000, 0.75, 4.70},
+                {"TGN",      "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   19.2200,  0.50, 0.442915, 1.000000, 1.00, 4.70},
+                {"EL",       "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   10.5200,  0.40, 0.550014, 1.000000, 1.00, 4.70},
+                {"TTS",      "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    27.0000,  0.70, 0.942774, 1.000000, 0.75, 4.70},
+                {"ONE",      "ONE UNITED PROPERTIES",                   3797654315ull,  0.9600,   0.40, 0.733118, 1.000000, 0.75, 4.70},
+                {"DIGI",     "Digi Communications N.V.",                100000000ull,   41.9000,  0.40, 0.637891, 1.000000, 0.75, 4.70},
+                {"SNG",      "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   49.8500,  0.30, 0.139110, 1.000000, 1.00, 4.70},
+                {"FP",       "FONDUL PROPRIETATEA",                     5668806128ull,  0.4925,   0.60, 0.478666, 1.000000, 1.00, 4.70},
+                {"BRD",      "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   17.4800,  0.40, 0.164554, 1.000000, 1.00, 4.70},
+                {"TEL",      "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    29.5000,  0.40, 1.000000, 1.000000, 0.75, 3.80},
+                {"EVER",     "EVERGENT INVESTMENTS S.A.",               961753592ull,   1.2750,   1.00, 1.000000, 1.000000, 0.50, 3.59},
+                {"TRP",      "TERAPLAST SA",                            2179000358ull,  0.4800,   0.60, 1.000000, 1.000000, 0.75, 2.76},
+                {"INFINITY", "INFINITY CAPITAL INVESTMENTS S.A.",       500000000ull,   1.8300,   1.00, 1.000000, 1.000000, 0.50, 2.68},
+                {"WINE",     "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    13.9000,  0.80, 1.000000, 1.000000, 0.75, 1.96},
+                {"LION",     "LION CAPITAL S.A.",                       507510056ull,   2.4900,   1.00, 1.000000, 1.000000, 0.25, 1.85},
+                {"BVB",      "BURSA DE VALORI BUCURESTI SA",            8049246ull,     68.0000,  1.00, 1.000000, 1.000000, 0.50, 1.60},
+                {"AQ",       "AQUILA PART PROD COM",                    1200002400ull,  0.8900,   0.40, 1.000000, 1.000000, 0.50, 1.25},
+                {"SFG",      "Sphera Franchise Group",                  38799340ull,    23.7000,  0.40, 1.000000, 1.000000, 0.50, 1.08},
+                {"TRANSI",   "TRANSILVANIA INVESTMENTS ALLIANCE S.A.",  2162443797ull,  0.3040,   1.00, 1.000000, 1.000000, 0.25, 0.96},
+                {"COTE",     "CONPET SA",                               8657528ull,     80.0000,  0.40, 1.000000, 1.000000, 0.50, 0.81},
+                {"ATB",      "ANTIBIOTICE S.A.",                        671338040ull,   1.4350,   0.50, 1.000000, 1.000000, 0.25, 0.71},
+                {"ALR",      "ALRO S.A.",                               713779135ull,   1.5300,   0.30, 1.000000, 1.000000, 0.25, 0.48},
+                {"BNET",     "BITTNET SYSTEMS SA BUCURESTI",            634176714ull,   0.2760,   0.50, 1.000000, 1.000000, 0.50, 0.26},
+                {"ROCE",     "ROMCARBON SA",                            528244192ull,   0.2070,   0.40, 1.000000, 1.000000, 0.50, 0.13},
+                {"BRK",      "SSIF BRK FINANCIAL GROUP SA",             337429952ull,   0.1575,   0.90, 1.000000, 1.000000, 0.25, 0.07},
+            }
+        },
+        {
+            "BET-BK", "12/8/2023", "Operational adjustment INFINITY",
+            {
+                {"H2O",      "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   126.4000, 0.20, 0.113508, 1.000000, 1.00, 7.55},
+                {"EBS",      "Erste Group Bank AG",                     429800000ull,   183.0000, 0.80, 0.026309, 1.000000, 0.75, 7.26},
+                {"SNP",      "OMV PETROM S.A.",                         62311667058ull, 0.5600,   0.30, 0.118088, 1.000000, 1.00, 7.23},
+                {"TLV",      "BANCA TRANSILVANIA S.A.",                 798658233ull,   23.3400,  1.00, 0.066095, 1.000000, 1.00, 7.20},
+                {"EL",       "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   10.5200,  0.40, 0.588574, 1.000000, 1.00, 5.02},
+                {"TTS",      "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    27.0000,  0.70, 1.000000, 1.000000, 0.75, 4.97},
+                {"TGN",      "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   19.2200,  0.50, 0.459641, 1.000000, 1.00, 4.87},
+                {"SNN",      "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   49.2500,  0.20, 0.274954, 1.000000, 1.00, 4.78},
+                {"SNG",      "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   49.8500,  0.30, 0.139204, 1.000000, 1.00, 4.69},
+                {"DIGI",     "Digi Communications N.V.",                100000000ull,   41.9000,  0.40, 0.635257, 1.000000, 0.75, 4.67},
+                {"BRD",      "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   17.4800,  0.40, 0.162457, 1.000000, 1.00, 4.63},
+                {"M",        "MedLife S.A.",                            531481968ull,   4.2000,   0.70, 0.663719, 1.000000, 0.75, 4.55},
+                {"ONE",      "ONE UNITED PROPERTIES",                   3797654315ull,  0.9600,   0.40, 0.701371, 1.000000, 0.75, 4.48},
+                {"FP",       "FONDUL PROPRIETATEA",                     6217825213ull,  0.4925,   0.80, 0.290866, 1.000000, 1.00, 4.17},
+                {"TEL",      "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    29.5000,  0.40, 1.000000, 1.000000, 0.75, 3.79},
+                {"EVER",     "EVERGENT INVESTMENTS S.A.",               961753592ull,   1.2750,   1.00, 1.000000, 1.000000, 0.50, 3.58},
+                {"TRP",      "TERAPLAST SA",                            2179000358ull,  0.4800,   0.60, 1.000000, 1.000000, 0.75, 2.75},
+                {"INFINITY", "INFINITY CAPITAL INVESTMENTS S.A.",       500000000ull,   1.8300,   1.00, 1.000000, 1.000000, 0.50, 2.67},
+                {"WINE",     "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    13.9000,  0.80, 1.000000, 1.000000, 0.75, 1.96},
+                {"LION",     "LION CAPITAL S.A.",                       507510056ull,   2.4900,   1.00, 1.000000, 1.000000, 0.25, 1.85},
+                {"BVB",      "BURSA DE VALORI BUCURESTI SA",            8049246ull,     68.0000,  1.00, 1.000000, 1.000000, 0.50, 1.60},
+                {"AQ",       "AQUILA PART PROD COM",                    1200002400ull,  0.8900,   0.40, 1.000000, 1.000000, 0.50, 1.25},
+                {"SFG",      "Sphera Franchise Group",                  38799340ull,    23.7000,  0.40, 1.000000, 1.000000, 0.50, 1.08},
+                {"TRANSI",   "TRANSILVANIA INVESTMENTS ALLIANCE S.A.",  2162443797ull,  0.3040,   1.00, 1.000000, 1.000000, 0.25, 0.96},
+                {"COTE",     "CONPET SA",                               8657528ull,     80.0000,  0.40, 1.000000, 1.000000, 0.50, 0.81},
+                {"ATB",      "ANTIBIOTICE S.A.",                        671338040ull,   1.4350,   0.50, 1.000000, 1.000000, 0.25, 0.70},
+                {"ALR",      "ALRO S.A.",                               713779135ull,   1.5300,   0.30, 1.000000, 1.000000, 0.25, 0.48},
+                {"BNET",     "BITTNET SYSTEMS SA BUCURESTI",            634176714ull,   0.2760,   0.50, 1.000000, 1.000000, 0.50, 0.26},
+                {"ROCE",     "ROMCARBON SA",                            264122096ull,   0.2070,   0.40, 1.000000, 2.000000, 0.50, 0.13},
+                {"BRK",      "SSIF BRK FINANCIAL GROUP SA",             337429952ull,   0.1575,   1.00, 1.000000, 1.000000, 0.25, 0.08},
+            }
+        },
+        {
+            "BET-BK", "11/17/2023", "Operational adjustment ",
+            {
+                {"H2O",    "S.P.E.E.H. HIDROELECTRICA S.A.",          449802567ull,   118.9000, 0.2, 0.113508, 1.000000, 1.00, 7.25},
+                {"SNP",    "OMV PETROM S.A.",                         62311667058ull, 0.5500,   0.3, 0.118088, 1.000000, 1.00, 7.25},
+                {"TLV",    "BANCA TRANSILVANIA S.A.",                 798658233ull,   23.0000,  1.0, 0.066095, 1.000000, 1.00, 7.25},
+                {"EBS",    "Erste Group Bank AG",                     429800000ull,   178.9500, 0.8, 0.026309, 1.000000, 0.75, 7.25},
+                {"M",      "MedLife S.A.",                            531481968ull,   4.2500,   0.7, 0.663719, 1.000000, 0.75, 4.70},
+                {"EL",     "SOCIETATEA ENERGETICA ELECTRICA S.A.",    346443597ull,   9.6500,   0.4, 0.588574, 1.000000, 1.00, 4.70},
+                {"TGN",    "S.N.T.G.N. TRANSGAZ S.A.",                188381504ull,   18.1800,  0.5, 0.459641, 1.000000, 1.00, 4.70},
+                {"SNN",    "S.N. NUCLEARELECTRICA S.A.",              301643894ull,   47.4500,  0.2, 0.274954, 1.000000, 1.00, 4.70},
+                {"DIGI",   "Digi Communications N.V.",                100000000ull,   41.3000,  0.4, 0.635257, 1.000000, 0.75, 4.70},
+                {"ONE",    "ONE UNITED PROPERTIES",                   3797654315ull,  0.9850,   0.4, 0.701371, 1.000000, 0.75, 4.70},
+                {"FP",     "FONDUL PROPRIETATEA",                     6217825213ull,  0.5440,   0.8, 0.290866, 1.000000, 1.00, 4.70},
+                {"BRD",    "BRD - GROUPE SOCIETE GENERALE S.A.",      696901518ull,   17.3800,  0.4, 0.162457, 1.000000, 1.00, 4.70},
+                {"SNG",    "S.N.G.N. ROMGAZ S.A.",                    385422400ull,   48.9000,  0.3, 0.139204, 1.000000, 1.00, 4.70},
+                {"TTS",    "TTS (TRANSPORT TRADE SERVICES)",          60000000ull,    24.5000,  0.7, 1.000000, 1.000000, 0.75, 4.61},
+                {"TEL",    "C.N.T.E.E. TRANSELECTRICA",               73303142ull,    29.1000,  0.4, 1.000000, 1.000000, 0.75, 3.82},
+                {"EVER",   "EVERGENT INVESTMENTS S.A.",               961753592ull,   1.2650,   1.0, 1.000000, 1.000000, 0.50, 3.63},
+                {"TRP",    "TERAPLAST SA",                            2179000358ull,  0.4830,   0.6, 1.000000, 1.000000, 0.75, 2.83},
+                {"SIF5",   "INFINITY CAPITAL INVESTMENTS S.A.",       500000000ull,   1.8450,   1.0, 1.000000, 1.000000, 0.50, 2.75},
+                {"WINE",   "PURCARI WINERIES PUBLIC COMPANY LIMITED", 40117500ull,    13.9600,  0.8, 1.000000, 1.000000, 0.75, 2.01},
+                {"LION",   "LION CAPITAL S.A.",                       507510056ull,   2.4800,   1.0, 1.000000, 1.000000, 0.25, 1.88},
+                {"BVB",    "BURSA DE VALORI BUCURESTI SA",            8049246ull,     64.2000,  1.0, 1.000000, 1.000000, 0.50, 1.54},
+                {"AQ",     "AQUILA PART PROD COM",                    1200002400ull,  0.8820,   0.4, 1.000000, 1.000000, 0.50, 1.26},
+                {"TRANSI", "TRANSILVANIA INVESTMENTS ALLIANCE S.A.",  2162443797ull,  0.3040,   1.0, 1.000000, 1.000000, 0.25, 0.98},
+                {"SFG",    "Sphera Franchise Group",                  38799340ull,    20.3000,  0.4, 1.000000, 1.000000, 0.50, 0.94},
+                {"COTE",   "CONPET SA",                               8657528ull,     76.8000,  0.4, 1.000000, 1.000000, 0.50, 0.79},
+                {"ATB",    "ANTIBIOTICE S.A.",                        671338040ull,   1.4550,   0.5, 1.000000, 1.000000, 0.25, 0.73},
+                {"ALR",    "ALRO S.A.",                               713779135ull,   1.4900,   0.3, 1.000000, 1.000000, 0.25, 0.48},
+                {"BNET",   "BITTNET SYSTEMS SA BUCURESTI",            634176714ull,   0.2560,   0.5, 1.000000, 1.000000, 0.50, 0.24},
+                {"ROCE",   "ROMCARBON SA",                            264122096ull,   0.1895,   0.4, 1.000000, 2.000000, 0.50, 0.12},
+                {"BRK",    "SSIF BRK FINANCIAL GROUP SA",             337429952ull,   0.1585,   1.0, 1.000000, 1.000000, 0.25, 0.08},
+            }
+        },
+    };
+    // clang-format on
+    IndexName name = "BET-BK";
+    BvbScraperTest bvbTest;
+    std::ifstream f("test/data/parse_index_adjustments_history.txt");
+
+    ASSERT_TRUE(f.is_open());
+
+    std::string data(
+        (std::istreambuf_iterator<char>(f)),
+        std::istreambuf_iterator<char>());
+    f.close();
+
+    ASSERT_TRUE(data.size() > 0);
+
+    auto res = bvbTest.ParseAdjustmentsHistory(data, name);
+    ASSERT_TRUE(res.has_value());
+    ASSERT_EQ(res.value().size(), expectedIndexes.size());
+
+    for (size_t i = 0; i < expectedIndexes.size(); i++) {
+        const auto& index = res.value()[i];
+
+        ASSERT_EQ(index.name, expectedIndexes[i].name);
+        ASSERT_EQ(index.date, expectedIndexes[i].date);
+        ASSERT_EQ(index.reason, expectedIndexes[i].reason);
+        ASSERT_EQ(index.companies.size(), expectedIndexes[i].companies.size());
+
+        for (size_t j = 0; j < index.companies.size(); j++) {
+            ASSERT_EQ(
+                index.companies[j].symbol,
+                expectedIndexes[i].companies[j].symbol);
+            ASSERT_EQ(
+                index.companies[j].name,
+                expectedIndexes[i].companies[j].name);
+            ASSERT_EQ(
+                index.companies[j].shares,
+                expectedIndexes[i].companies[j].shares);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].reference_price,
+                expectedIndexes[i].companies[j].reference_price);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].free_float_factor,
+                expectedIndexes[i].companies[j].free_float_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].representation_factor,
+                expectedIndexes[i].companies[j].representation_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].price_correction_factor,
+                expectedIndexes[i].companies[j].price_correction_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].liquidity_factor,
+                expectedIndexes[i].companies[j].liquidity_factor);
+            ASSERT_DOUBLE_EQ(
+                index.companies[j].weight,
+                expectedIndexes[i].companies[j].weight);
+        }
     }
 }

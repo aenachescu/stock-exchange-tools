@@ -92,6 +92,52 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
     return ParseConstituents(rsp.value().body, name);
 }
 
+tl::expected<Indexes, Error> BvbScraper::GetAdjustmentsHistory(
+    const IndexName& name)
+{
+    auto rsp = GetIndicesProfilesPage();
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    if (! indexesDetails) {
+        return tl::unexpected(indexesDetails.error());
+    }
+
+    auto it = std::find(
+        indexesDetails.value().names.begin(),
+        indexesDetails.value().names.end(),
+        name);
+    if (it == indexesDetails.value().names.end()) {
+        return tl::unexpected(Error::InvalidArg);
+    }
+
+    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    if (! reqData) {
+        return tl::unexpected(reqData.error());
+    }
+
+    if (indexesDetails.value().selected != name) {
+        rsp = SelectIndex(name, reqData.value());
+        if (! rsp) {
+            return tl::unexpected(rsp.error());
+        }
+
+        reqData = ParseRequestDataFromPostRsp(rsp.value().body);
+        if (! reqData) {
+            return tl::unexpected(reqData.error());
+        }
+    }
+
+    rsp = SelectAdjustmentsHistory(name, reqData.value());
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    return ParseAdjustmentsHistory(rsp.value().body, name);
+}
+
 tl::expected<IndexTradingData, Error> BvbScraper::GetTradingData(
     const IndexName& name)
 {
@@ -311,6 +357,21 @@ bool BvbScraper::IsValidDouble(
     return true;
 }
 
+bool BvbScraper::IsValidNumber(const std::string val)
+{
+    size_t points = 0;
+
+    for (char c : val) {
+        if (c == '.') {
+            points++;
+        } else if (! std::isdigit(c)) {
+            return false;
+        }
+    }
+
+    return points < 2;
+}
+
 tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
     const char* url,
     const CurlHeaders& headers,
@@ -402,6 +463,72 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
         {"__EVENTTARGET",
          "ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
          "IndexControlList$ddIndices"},
+        {"__EVENTARGUMENT", reqData.eventArg},
+        {"__LASTFOCUS", reqData.lastFocus},
+        {"__VIEWSTATE", reqData.viewState},
+        {"__VIEWSTATEGENERATOR", reqData.viewStateGenerator},
+        {"__VIEWSTATEENCRYPTED", reqData.viewStateEncrypted},
+        {"__EVENTVALIDATION", reqData.eventValidation},
+        {"autocomplete-form-mob", ""},
+        {"ctl00$ctl00$body$rightColumnPlaceHolder$IndexProfilesCurrentValues$"
+         "IndexControlList$ddIndices",
+         name},
+        {"gvC_length", "10"},
+        {"__ASYNCPOST", "true"},
+    };
+
+    err = headers.Add({
+        "Host: m.bvb.ro",
+        "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 "
+        "Firefox/111.0",
+        "Accept: */*",
+        "Accept-Language: en-US,en;q=0.5",
+        "Referer: "
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        "Cookie: MobBVBCulturePref=en-US",
+        "X-Requested-With: XMLHttpRequest",
+        "X-MicrosoftAjax: Delta=true",
+        "Cache-Control: no-cache",
+        "Content-Type: application/x-www-form-urlencoded; charset=utf-8",
+        "Origin: https://m.bvb.ro",
+        "Sec-Fetch-Dest: empty",
+        "Sec-Fetch-Mode: cors",
+        "Sec-Fetch-Site: same-origin",
+    });
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    auto rsp = SendHttpRequest(
+        "https://m.bvb.ro/FinancialInstruments/Indices/IndicesProfiles",
+        headers,
+        HttpMethod::post,
+        HttpVersion::http1_1,
+        postData);
+    if (! rsp) {
+        return rsp;
+    }
+
+    if (rsp.value().code != 200) {
+        return tl::unexpected(Error::UnexpectedResponseCode);
+    }
+
+    return rsp;
+}
+
+tl::expected<HttpResponse, Error> BvbScraper::SelectAdjustmentsHistory(
+    const IndexName& name,
+    const RequestData& reqData)
+{
+    CurlHeaders headers;
+    Error err = Error::NoError;
+
+    PostData postData = {
+        {"ctl00$ctl00$MasterScriptManager",
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$upMob|ctl00$"
+         "ctl00$body$rightColumnPlaceHolder$TabsControl$lb4"},
+        {"__EVENTTARGET",
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$lb4"},
         {"__EVENTARGUMENT", reqData.eventArg},
         {"__LASTFOCUS", reqData.lastFocus},
         {"__VIEWSTATE", reqData.viewState},
@@ -975,6 +1102,185 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
     res.value().reason = "Index Composition";
 
     return res;
+}
+
+tl::expected<Index, Error> BvbScraper::ParseAdjustmentsHistoryEntry(
+    const std::string& data,
+    ClosedInterval ci)
+{
+    static constexpr std::string_view kTableId = "gvDetails";
+
+    DEF_SETTER(Company, symbol, NO_FUNC);
+    DEF_SETTER(Company, name, NO_FUNC);
+    DEF_SETTER(Company, shares, StringToU64);
+    DEF_SETTER(Company, reference_price, std::stod);
+    DEF_SETTER(Company, free_float_factor, std::stod);
+    DEF_SETTER(Company, representation_factor, std::stod);
+    DEF_SETTER(Company, price_correction_factor, std::stod);
+    DEF_SETTER(Company, liquidity_factor, std::stod);
+    DEF_SETTER(Company, weight, std::stod);
+
+    TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
+        return this->IsValidCompanySymbol(val);
+    };
+    TableValueValidator isValidName = [this](const std::string& val) -> bool {
+        return this->IsValidCompanyName(val);
+    };
+    TableValueValidator isValidShares = [this](const std::string& val) -> bool {
+        return this->IsValidInt(val, false);
+    };
+    TableValueValidator isValidPrice = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 4, false, false, false);
+    };
+    TableValueValidator isValidNumber = [this](const std::string& val) -> bool {
+        return this->IsValidNumber(val);
+    };
+    TableValueValidator isValidWeight = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, false, false);
+    };
+
+    AddEntryToTable<Index, Company> addFunc = [](Index& i,
+                                                 Company&& c) -> void {
+        i.companies.push_back(std::move(c));
+    };
+
+    std::vector<TableColumnDetails<Company>> columns = {
+        {"Symbol", isValidSymbol, symbol, HtmlTag::A},
+        {"Name", isValidName, name},
+        {"Shares", isValidShares, shares},
+        {"Reference price", isValidPrice, reference_price},
+        {"FF", isValidNumber, free_float_factor},
+        {"FR", isValidNumber, representation_factor},
+        {"FC", isValidNumber, price_correction_factor},
+        {"Weight (%)", isValidWeight, weight},
+    };
+
+    std::vector<TableColumnDetails<Company>> alternative_columns = {
+        {"Symbol", isValidSymbol, symbol, HtmlTag::A},
+        {"Name", isValidName, name},
+        {"Shares", isValidShares, shares},
+        {"Reference price", isValidPrice, reference_price},
+        {"FF", isValidNumber, free_float_factor},
+        {"FR", isValidNumber, representation_factor},
+        {"FC", isValidNumber, price_correction_factor},
+        {"FL", isValidNumber, liquidity_factor},
+        {"Weight (%)", isValidWeight, weight},
+    };
+
+    auto res = ParseTable<Index, Company>(
+        columns,
+        data,
+        ci,
+        HtmlAttribute::Id,
+        kTableId,
+        addFunc);
+    if (! res) {
+        res = ParseTable<Index, Company>(
+            alternative_columns,
+            data,
+            ci,
+            HtmlAttribute::Id,
+            kTableId,
+            addFunc);
+        if (! res) {
+            return tl::unexpected(res.error());
+        }
+    }
+
+    return res;
+}
+
+tl::expected<Indexes, Error> BvbScraper::ParseAdjustmentsHistory(
+    const std::string& data,
+    const IndexName& indexName)
+{
+    static constexpr std::string_view kTableId = "gvAH";
+    static constexpr std::array<std::string_view, 4> kColumnNames =
+        {"&nbsp;", "Date", "Reason", "&nbsp;"};
+
+    HtmlParser html(data);
+    Indexes indexes;
+
+    auto tableLocation =
+        html.FindElement(HtmlTag::Table, {}, HtmlAttribute::Id, kTableId);
+    if (! tableLocation) {
+        return tl::unexpected(tableLocation.error());
+    }
+
+    auto theadLocation =
+        html.FindElement(HtmlTag::Thead, tableLocation.value().data);
+    if (! theadLocation) {
+        return tl::unexpected(theadLocation.error());
+    }
+
+    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation.value().data);
+    if (! trLocation) {
+        return tl::unexpected(trLocation.error());
+    }
+
+    auto thLocations =
+        html.FindAllElements(HtmlTag::Th, trLocation.value().data);
+    if (! thLocations) {
+        return tl::unexpected(thLocations.error());
+    }
+
+    if (thLocations.value().size() != kColumnNames.size()) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    for (size_t i = 0; i < kColumnNames.size(); i++) {
+        std::string_view val(
+            data.c_str() + thLocations.value()[i].data.Lower(),
+            thLocations.value()[i].data.Size());
+        if (val != kColumnNames[i]) {
+            return tl::unexpected(Error::InvalidData);
+        }
+    }
+
+    auto tbodyLocation =
+        html.FindElement(HtmlTag::Tbody, tableLocation.value().data);
+    if (! tbodyLocation) {
+        return tl::unexpected(tbodyLocation.error());
+    }
+
+    auto trLocations =
+        html.FindAllElements(HtmlTag::Tr, tbodyLocation.value().data);
+    if (! trLocations) {
+        return tl::unexpected(trLocations.error());
+    }
+
+    for (const auto& loc : trLocations.value()) {
+        auto tdLocations = html.FindAllElements(HtmlTag::Td, loc.data);
+        if (! tdLocations) {
+            return tl::unexpected(tdLocations.error());
+        }
+
+        if (tdLocations.value().size() != kColumnNames.size()) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+
+        if (tdLocations.value()[0].data.Empty() == false) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+
+        auto index =
+            ParseAdjustmentsHistoryEntry(data, tdLocations.value()[3].data);
+        if (! index) {
+            return tl::unexpected(index.error());
+        }
+
+        index.value().name = indexName;
+        index.value().date.assign(
+            data.c_str() + tdLocations.value()[1].data.Lower(),
+            tdLocations.value()[1].data.Size());
+        index.value().reason.assign(
+            data.c_str() + tdLocations.value()[2].data.Lower(),
+            tdLocations.value()[2].data.Size());
+
+        indexes.push_back(std::move(index.value()));
+    }
+
+    return std::move(indexes);
 }
 
 tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(

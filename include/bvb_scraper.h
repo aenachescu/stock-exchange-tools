@@ -57,7 +57,7 @@ public:
     tl::expected<IndexesNames, Error> GetIndexesNames();
     tl::expected<IndexesPerformance, Error> GetIndexesPerformance();
     tl::expected<Index, Error> GetConstituents(const IndexName& name);
-    tl::expected<Index, Error> GetAdjustmentsHistory(const IndexName& name);
+    tl::expected<Indexes, Error> GetAdjustmentsHistory(const IndexName& name);
     tl::expected<IndexTradingData, Error> GetTradingData(const IndexName& name);
 
 private:
@@ -71,6 +71,7 @@ private:
         bool allowNegative,
         bool hasSeparators,
         bool allowNbsp);
+    bool IsValidNumber(const std::string val);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
@@ -81,6 +82,9 @@ private:
 
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
     tl::expected<HttpResponse, Error> SelectIndex(
+        const IndexName& name,
+        const RequestData& reqData);
+    tl::expected<HttpResponse, Error> SelectAdjustmentsHistory(
         const IndexName& name,
         const RequestData& reqData);
     tl::expected<HttpResponse, Error> SelectTradingData(
@@ -115,6 +119,12 @@ private:
     tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(
         const std::string& data);
     tl::expected<Index, Error> ParseConstituents(
+        const std::string& data,
+        const IndexName& indexName);
+    tl::expected<Index, Error> ParseAdjustmentsHistoryEntry(
+        const std::string& data,
+        ClosedInterval ci);
+    tl::expected<Indexes, Error> ParseAdjustmentsHistory(
         const std::string& data,
         const IndexName& indexName);
     tl::expected<IndexTradingData, Error> ParseTradingData(

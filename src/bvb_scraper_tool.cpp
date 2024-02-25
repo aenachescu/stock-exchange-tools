@@ -246,6 +246,84 @@ int cmd_print_index_constituents(const IndexName& indexName)
     return 0;
 }
 
+int cmd_print_adjustments_history(const IndexName& indexName, size_t count)
+{
+    BvbScraper bvbScraper;
+    Table table;
+    size_t id = 1;
+    IndexesNames names;
+
+    if (indexName == "--all") {
+        auto r = bvbScraper.GetIndexesNames();
+        if (! r) {
+            std::cout << "failed to get indexes names: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        names = r.value();
+    } else {
+        names.push_back(indexName);
+    }
+
+    for (const auto& name : names) {
+        auto r = bvbScraper.GetAdjustmentsHistory(name);
+        if (! r) {
+            std::cout << "failed to get " << name << " adjustments history: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        for (size_t i = 0; i < r.value().size() && i < count; i++) {
+            Index& index = r.value()[i];
+            std::sort(
+                index.companies.begin(),
+                index.companies.end(),
+                [](Company a, Company b) { return a.weight > b.weight; });
+
+            id = 1;
+            table.clear();
+            table.reserve(index.companies.size() + 1);
+            table.emplace_back(std::vector<std::string>{
+                "#",
+                "Symbol",
+                "Company",
+                "Shares",
+                "Price",
+                "FF",
+                "FR",
+                "FC",
+                "FL",
+                "Weight (%)",
+            });
+
+            for (const auto& i : index.companies) {
+                table.emplace_back(std::vector<std::string>{
+                    std::to_string(id),
+                    i.symbol,
+                    i.name,
+                    u64_to_string(i.shares),
+                    double_to_string(i.reference_price, 4),
+                    double_to_string(i.free_float_factor),
+                    double_to_string(i.representation_factor, 6),
+                    double_to_string(i.price_correction_factor, 6),
+                    double_to_string(i.liquidity_factor),
+                    double_to_string(i.weight),
+                });
+                id++;
+            }
+
+            std::cout << "Index name: " << index.name << std::endl;
+            std::cout << "Date: " << index.date << std::endl;
+            std::cout << "Reason: " << index.reason << std::endl;
+            print_table(table);
+        }
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
+
 int cmd_print_trading_data(const IndexName& indexName)
 {
     BvbScraper bvbScraper;
@@ -340,6 +418,20 @@ int main(int argc, char* argv[])
             return -1;
         }
         return cmd_print_index_constituents(argv[2]);
+    } else if (strcmp(argv[1], "--pah") == 0) {
+        size_t count = std::numeric_limits<size_t>::max();
+
+        if (argc < 3) {
+            std::cout << "no index name" << std::endl;
+            return -1;
+        }
+
+        if (argc == 4) {
+            std::istringstream iss(argv[3]);
+            iss >> count;
+        }
+
+        return cmd_print_adjustments_history(argv[2], count);
     } else if (strcmp(argv[1], "--ptd") == 0) {
         if (argc < 3) {
             std::cout << "no index name" << std::endl;
