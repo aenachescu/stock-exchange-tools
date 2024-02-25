@@ -247,7 +247,8 @@ bool BvbScraper::IsValidCompanyName(const std::string& name)
         if (std::isalnum(name[i])) {
             continue;
         }
-        if (name[i] == '-' || name[i] == ' ' || name[i] == '&') {
+        if (name[i] == '-' || name[i] == ' ' || name[i] == '&' ||
+            name[i] == ',') {
             continue;
         }
         if (name[i] == '.' && std::isalpha(name[i - 1])) {
