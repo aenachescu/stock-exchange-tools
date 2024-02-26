@@ -401,6 +401,27 @@ int cmd_print_trading_data(const IndexName& indexName)
     return 0;
 }
 
+void cmd_print_help()
+{
+    std::cout << "Supported commands:" << std::endl;
+    std::cout << "--pi - prints names of BVB indices" << std::endl;
+    std::cout << "--pip - prints performance of BVB indices" << std::endl;
+    std::cout << "--pic <index_name> - prints constituents of a BVB index. Use "
+                 "--all for index name in order to print constituents for all "
+                 "BVB indices."
+              << std::endl;
+    std::cout << "--pah <index_name> <n> - prints adjustments history of a BVB "
+                 "index. Use --all for index name in order to print "
+                 "adjustments history for all BVB indices. N can be used to "
+                 "limit how many adjustments to be printed, by default all "
+                 "adjustments are printed."
+              << std::endl;
+    std::cout << "--ptd <index_name> - prints trading data for a BVB index. "
+                 "Use --all for index name in order to print trading data for "
+                 "all BVB indices."
+              << std::endl;
+}
+
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
@@ -438,8 +459,12 @@ int main(int argc, char* argv[])
             return -1;
         }
         return cmd_print_trading_data(argv[2]);
+    } else if (strcmp(argv[1], "--help") == 0) {
+        cmd_print_help();
+        return 0;
     }
 
     std::cout << "unknown command" << std::endl;
+    cmd_print_help();
     return -1;
 }
