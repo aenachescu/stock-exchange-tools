@@ -1,3 +1,6 @@
+#ifndef STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
+#define STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
+
 #include <string>
 #include <vector>
 
@@ -60,3 +63,5 @@ struct IndexPerformance
 
 using Indexes            = std::vector<Index>;
 using IndexesPerformance = std::vector<IndexPerformance>;
+
+#endif // STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
