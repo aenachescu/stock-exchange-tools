@@ -13,6 +13,7 @@ add_executable(bvb_scraper_tool
     src/bvb_scraper.cpp
     src/html_parser.cpp
     src/curl_utils.cpp
+    src/string_utils.cpp
 )
 target_include_directories(bvb_scraper_tool PUBLIC
     include
