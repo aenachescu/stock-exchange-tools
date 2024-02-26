@@ -1,6 +1,10 @@
 #include "bvb_scraper.h"
 
+#include "string_utils.h"
+
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <utility>
 
 #define DEF_SETTER(entry, field, func)                                         \
@@ -182,6 +186,51 @@ tl::expected<IndexTradingData, Error> BvbScraper::GetTradingData(
     }
 
     return ParseTradingData(rsp.value().body, name);
+}
+
+Error BvbScraper::SaveAdjustmentsHistoryToFile(
+    const IndexName& name,
+    const Indexes& indexes)
+{
+    if (indexes.empty() == true) {
+        return Error::InvalidArg;
+    }
+
+    std::filesystem::path filePath = kDataDirPath;
+    std::string fileName           = name;
+    fileName += kAdjustmentsHistoryFileName;
+    filePath /= fileName;
+
+    std::ofstream file(filePath.c_str());
+    if (! file) {
+        return Error::InvalidArg;
+    }
+
+    for (const auto& index : indexes) {
+        file << index.name << std::endl;
+        file << index.date << std::endl;
+        file << index.reason << std::endl;
+        for (const auto& comp : index.companies) {
+            file << comp.symbol << "|";
+            file << comp.name << "|";
+            file << comp.shares << "|";
+            file << double_to_string(comp.reference_price, 4) << "|";
+            file << double_to_string(comp.free_float_factor, 2) << "|";
+            file << double_to_string(comp.representation_factor, 6) << "|";
+            file << double_to_string(comp.price_correction_factor, 6) << "|";
+            file << double_to_string(comp.liquidity_factor, 2) << "|";
+            file << double_to_string(comp.weight, 2) << std::endl;
+        }
+        file << std::endl;
+    }
+
+    return Error::NoError;
+}
+
+tl::expected<Indexes, Error> BvbScraper::LoadAdjustmentsHistoryFromFile(
+    const IndexName& name)
+{
+    return tl::unexpected(Error::InvalidArg);
 }
 
 bool BvbScraper::IsValidIndexName(const std::string& name)

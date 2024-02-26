@@ -345,6 +345,46 @@ int cmd_print_trading_data(const IndexName& indexName)
     return 0;
 }
 
+int cmd_save_adjustments_history(const IndexName& indexName)
+{
+    BvbScraper bvbScraper;
+    IndexesNames names;
+
+    if (indexName == "--all") {
+        auto r = bvbScraper.GetIndexesNames();
+        if (! r) {
+            std::cout << "failed to get indexes names: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        names = r.value();
+    } else {
+        names.push_back(indexName);
+    }
+
+    for (const auto& name : names) {
+        auto r = bvbScraper.GetAdjustmentsHistory(name);
+        if (! r) {
+            std::cout << "failed to get " << name << " adjustments history: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        Error err = bvbScraper.SaveAdjustmentsHistoryToFile(name, r.value());
+        if (err != Error::NoError) {
+            std::cout << "failed to save " << name
+                      << " adjustments history: " << magic_enum::enum_name(err)
+                      << std::endl;
+            continue;
+        }
+
+        std::cout << "saved " << name << " adjustments history" << std::endl;
+    }
+
+    return 0;
+}
+
 void cmd_print_help()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -363,6 +403,10 @@ void cmd_print_help()
     std::cout << "--ptd <index_name> - prints trading data for a BVB index. "
                  "Use --all for index name in order to print trading data for "
                  "all BVB indices."
+              << std::endl;
+    std::cout << "--sah <index_name> - saves adjustments history for a BVB "
+                 "index. Use --all for index name in order to save adjustments "
+                 "history for all BVB indices."
               << std::endl;
 }
 
@@ -403,6 +447,13 @@ int main(int argc, char* argv[])
             return -1;
         }
         return cmd_print_trading_data(argv[2]);
+    } else if (strcmp(argv[1], "--sah") == 0) {
+        if (argc < 3) {
+            std::cout << "no index name" << std::endl;
+            return -1;
+        }
+
+        return cmd_save_adjustments_history(argv[2]);
     } else if (strcmp(argv[1], "--help") == 0) {
         cmd_print_help();
         return 0;

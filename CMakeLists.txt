@@ -29,6 +29,7 @@ add_executable(set_unit_tests
     src/html_parser.cpp
     src/bvb_scraper.cpp
     src/curl_utils.cpp
+    src/string_utils.cpp
 )
 target_include_directories(set_unit_tests PUBLIC
     include

@@ -50,6 +50,10 @@ private:
         std::string viewStateEncrypted;
     };
 
+    static constexpr std::string_view kDataDirPath = "data/bvb";
+    static constexpr std::string_view kAdjustmentsHistoryFileName =
+        "_adjustments_history.txt";
+
 public:
     BvbScraper()  = default;
     ~BvbScraper() = default;
@@ -59,6 +63,12 @@ public:
     tl::expected<Index, Error> GetConstituents(const IndexName& name);
     tl::expected<Indexes, Error> GetAdjustmentsHistory(const IndexName& name);
     tl::expected<IndexTradingData, Error> GetTradingData(const IndexName& name);
+
+    Error SaveAdjustmentsHistoryToFile(
+        const IndexName& name,
+        const Indexes& indexes);
+    tl::expected<Indexes, Error> LoadAdjustmentsHistoryFromFile(
+        const IndexName& name);
 
 private:
     bool IsValidIndexName(const std::string& name);
