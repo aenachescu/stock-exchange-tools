@@ -56,3 +56,16 @@ std::string u64_to_string(uint64_t val)
 
     return res;
 }
+
+std::vector<std::string> split_string(const std::string& str, char delim)
+{
+    std::vector<std::string> vec;
+    std::string token;
+    std::stringstream ss(str);
+
+    while (std::getline(ss, token, delim)) {
+        vec.push_back(token);
+    }
+
+    return vec;
+}

@@ -230,7 +230,70 @@ Error BvbScraper::SaveAdjustmentsHistoryToFile(
 tl::expected<Indexes, Error> BvbScraper::LoadAdjustmentsHistoryFromFile(
     const IndexName& name)
 {
-    return tl::unexpected(Error::InvalidArg);
+    std::vector<std::vector<std::string>> data;
+    std::string line;
+    Indexes indexes;
+    std::filesystem::path filePath = kDataDirPath;
+    std::string fileName           = name;
+
+    fileName += kAdjustmentsHistoryFileName;
+    filePath /= fileName;
+
+    std::ifstream file(filePath.c_str());
+    if (! file) {
+        return tl::unexpected(Error::InvalidArg);
+    }
+
+    data.push_back({});
+    while (std::getline(file, line)) {
+        if (line.empty() == true) {
+            if (data.back().empty() == false) {
+                data.push_back({});
+            }
+            continue;
+        }
+
+        data.back().push_back(line);
+    }
+
+    if (data.back().empty() == true) {
+        data.pop_back();
+    }
+
+    indexes.reserve(data.size());
+    for (const auto& entry : data) {
+        if (entry.size() < 4) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+
+        Index index;
+        index.name   = entry[0];
+        index.date   = entry[1];
+        index.reason = entry[2];
+
+        for (size_t i = 3; i < entry.size(); i++) {
+            auto tokens = split_string(entry[i], '|');
+            if (tokens.size() != 9) {
+                return tl::unexpected(Error::UnexpectedData);
+            }
+
+            index.companies.push_back({});
+            index.companies.back().symbol            = tokens[0];
+            index.companies.back().name              = tokens[1];
+            index.companies.back().shares            = std::stoull(tokens[2]);
+            index.companies.back().reference_price   = std::stod(tokens[3]);
+            index.companies.back().free_float_factor = std::stod(tokens[4]);
+            index.companies.back().representation_factor = std::stod(tokens[5]);
+            index.companies.back().price_correction_factor =
+                std::stod(tokens[6]);
+            index.companies.back().liquidity_factor = std::stod(tokens[7]);
+            index.companies.back().weight           = std::stod(tokens[8]);
+        }
+
+        indexes.push_back(std::move(index));
+    }
+
+    return std::move(indexes);
 }
 
 bool BvbScraper::IsValidIndexName(const std::string& name)

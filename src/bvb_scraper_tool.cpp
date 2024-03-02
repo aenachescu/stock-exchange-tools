@@ -385,6 +385,68 @@ int cmd_save_adjustments_history(const IndexName& indexName)
     return 0;
 }
 
+int cmd_load_adjustments_history(const IndexName& indexName)
+{
+    BvbScraper bvbScraper;
+    Table table;
+    size_t id = 1;
+
+    auto r = bvbScraper.LoadAdjustmentsHistoryFromFile(indexName);
+    if (! r) {
+        std::cout << "failed to load " << indexName << " adjustments history: "
+                  << magic_enum::enum_name(r.error()) << std::endl;
+        return -1;
+    }
+
+    for (size_t i = 0; i < r.value().size(); i++) {
+        Index& index = r.value()[i];
+        std::sort(
+            index.companies.begin(),
+            index.companies.end(),
+            [](Company a, Company b) { return a.weight > b.weight; });
+
+        id = 1;
+        table.clear();
+        table.reserve(index.companies.size() + 1);
+        table.emplace_back(std::vector<std::string>{
+            "#",
+            "Symbol",
+            "Company",
+            "Shares",
+            "Price",
+            "FF",
+            "FR",
+            "FC",
+            "FL",
+            "Weight (%)",
+        });
+
+        for (const auto& i : index.companies) {
+            table.emplace_back(std::vector<std::string>{
+                std::to_string(id),
+                i.symbol,
+                i.name,
+                u64_to_string(i.shares),
+                double_to_string(i.reference_price, 4),
+                double_to_string(i.free_float_factor),
+                double_to_string(i.representation_factor, 6),
+                double_to_string(i.price_correction_factor, 6),
+                double_to_string(i.liquidity_factor),
+                double_to_string(i.weight),
+            });
+            id++;
+        }
+
+        std::cout << "Index name: " << index.name << std::endl;
+        std::cout << "Date: " << index.date << std::endl;
+        std::cout << "Reason: " << index.reason << std::endl;
+        print_table(table);
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+
 void cmd_print_help()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -407,6 +469,9 @@ void cmd_print_help()
     std::cout << "--sah <index_name> - saves adjustments history for a BVB "
                  "index. Use --all for index name in order to save adjustments "
                  "history for all BVB indices."
+              << std::endl;
+    std::cout << "--lah <index_name> - loads adjustments history from file for "
+                 "a BVB index and prints them."
               << std::endl;
 }
 
@@ -454,6 +519,13 @@ int main(int argc, char* argv[])
         }
 
         return cmd_save_adjustments_history(argv[2]);
+    } else if (strcmp(argv[1], "--lah") == 0) {
+        if (argc < 3) {
+            std::cout << "no index name" << std::endl;
+            return -1;
+        }
+
+        return cmd_load_adjustments_history(argv[2]);
     } else if (strcmp(argv[1], "--help") == 0) {
         cmd_print_help();
         return 0;
