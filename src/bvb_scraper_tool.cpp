@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <magic_enum.hpp>
+#include <set>
 #include <sstream>
 
 using Table = std::vector<std::vector<std::string>>;
@@ -368,7 +369,7 @@ int cmd_save_adjustments_history(const IndexName& indexName)
         if (! r) {
             std::cout << "failed to get " << name << " adjustments history: "
                       << magic_enum::enum_name(r.error()) << std::endl;
-            return -1;
+            continue;
         }
 
         Error err = bvbScraper.SaveAdjustmentsHistoryToFile(name, r.value());
@@ -447,6 +448,85 @@ int cmd_load_adjustments_history(const IndexName& indexName)
     return 0;
 }
 
+int cmd_update_adjustments_history(const IndexName& indexName)
+{
+    BvbScraper bvbScraper;
+    IndexesNames names;
+    uint16_t year = 0;
+    uint8_t month = 0;
+    uint8_t day   = 0;
+
+    if (indexName == "--all") {
+        auto r = bvbScraper.GetIndexesNames();
+        if (! r) {
+            std::cout << "failed to get indexes names: "
+                      << magic_enum::enum_name(r.error()) << std::endl;
+            return -1;
+        }
+
+        names = r.value();
+    } else {
+        names.push_back(indexName);
+    }
+
+    for (const auto& name : names) {
+        std::set<ComparableIndex, IndexComparator> mergedHistory;
+        Indexes indexes;
+
+        auto fileHistory = bvbScraper.LoadAdjustmentsHistoryFromFile(name);
+        if (! fileHistory) {
+            std::cout << "failed to load " << name << " adjustments history: "
+                      << magic_enum::enum_name(fileHistory.error())
+                      << std::endl;
+            continue;
+        }
+
+        auto siteHistory = bvbScraper.GetAdjustmentsHistory(name);
+        if (! siteHistory) {
+            std::cout << "failed to get " << name << " adjustments history: "
+                      << magic_enum::enum_name(siteHistory.error())
+                      << std::endl;
+            continue;
+        }
+
+        for (const auto& entry : fileHistory.value()) {
+            if (! parse_mdy_date(entry.date, month, day, year)) {
+                std::cout << "failed to parse index date [" << entry.date << "]"
+                          << std::endl;
+                return -1;
+            }
+            mergedHistory.emplace(ComparableIndex(entry, year, month, day));
+        }
+
+        for (const auto& entry : siteHistory.value()) {
+            if (! parse_mdy_date(entry.date, month, day, year)) {
+                std::cout << "failed to parse index date [" << entry.date << "]"
+                          << std::endl;
+                return -1;
+            }
+            mergedHistory.emplace(ComparableIndex(entry, year, month, day));
+        }
+
+        std::transform(
+            mergedHistory.rbegin(),
+            mergedHistory.rend(),
+            std::back_inserter(indexes),
+            [](const ComparableIndex& ci) { return ci.index; });
+
+        Error err = bvbScraper.SaveAdjustmentsHistoryToFile(name, indexes);
+        if (err != Error::NoError) {
+            std::cout << "failed to save " << name
+                      << " adjustments history: " << magic_enum::enum_name(err)
+                      << std::endl;
+            continue;
+        }
+
+        std::cout << "updated " << name << " adjustments history" << std::endl;
+    }
+
+    return 0;
+}
+
 void cmd_print_help()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -472,6 +552,11 @@ void cmd_print_help()
               << std::endl;
     std::cout << "--lah <index_name> - loads adjustments history from file for "
                  "a BVB index and prints them."
+              << std::endl;
+    std::cout << "--uah <index_name> - updates adjustments history for a BVB "
+                 "index by merging the adjustments history from file with the "
+                 "adjustments history from BVB site. Use --all for index name "
+                 "in order to update adjustments history for all BVB indices."
               << std::endl;
 }
 
@@ -526,6 +611,13 @@ int main(int argc, char* argv[])
         }
 
         return cmd_load_adjustments_history(argv[2]);
+    } else if (strcmp(argv[1], "--uah") == 0) {
+        if (argc < 3) {
+            std::cout << "no index name" << std::endl;
+            return -1;
+        }
+
+        return cmd_update_adjustments_history(argv[2]);
     } else if (strcmp(argv[1], "--help") == 0) {
         cmd_print_help();
         return 0;

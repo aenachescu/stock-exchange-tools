@@ -61,6 +61,36 @@ struct IndexPerformance
     double year_to_date = 0.0; // percentage
 };
 
+struct ComparableIndex
+{
+    const Index& index;
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+
+    ComparableIndex(const Index& i, uint16_t y, uint8_t m, uint8_t d)
+        : index(i), year(y), month(m), day(d)
+    {
+    }
+};
+
+struct IndexComparator
+{
+    bool operator()(const ComparableIndex& a, const ComparableIndex& b) const
+    {
+        if (a.year == b.year) {
+            if (a.month == b.month) {
+                if (a.day == b.day) {
+                    return a.index.reason < b.index.reason;
+                }
+                return a.day < b.day;
+            }
+            return a.month < b.month;
+        }
+        return a.year < b.year;
+    }
+};
+
 using Indexes            = std::vector<Index>;
 using IndexesPerformance = std::vector<IndexPerformance>;
 
