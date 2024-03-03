@@ -20,7 +20,7 @@ target_include_directories(bvb_scraper_tool PUBLIC
     expected/include/tl
     magic_enum/include)
 set_target_properties(bvb_scraper_tool PROPERTIES COMPILE_FLAGS
-    "-std=c++2b -Wall -Werror")
+    "-std=c++20 -Wall -Werror")
 target_link_libraries(bvb_scraper_tool ${CURL_LIBRARIES})
 
 add_executable(set_unit_tests
@@ -36,5 +36,5 @@ target_include_directories(set_unit_tests PUBLIC
     expected/include/tl
     magic_enum/include)
 set_target_properties(set_unit_tests PROPERTIES COMPILE_FLAGS
-    "-std=c++2b -Wall -Werror")
+    "-std=c++20 -Wall -Werror")
 target_link_libraries(set_unit_tests ${CURL_LIBRARIES} gtest gtest_main pthread)

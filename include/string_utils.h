@@ -13,4 +13,10 @@ std::string u64_to_string(uint64_t val);
 
 std::vector<std::string> split_string(const std::string& str, char delim);
 
+bool parse_mdy_date(
+    const std::string& str,
+    uint8_t& month,
+    uint8_t& day,
+    uint16_t& year);
+
 #endif // STOCK_EXCHANGE_TOOLS_STRING_UTILS_H

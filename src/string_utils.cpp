@@ -69,3 +69,53 @@ std::vector<std::string> split_string(const std::string& str, char delim)
 
     return vec;
 }
+
+bool parse_mdy_date(
+    const std::string& str,
+    uint8_t& month,
+    uint8_t& day,
+    uint16_t& year)
+{
+    month = 0;
+    day   = 0;
+    year  = 0;
+
+    auto validator = [](const std::string& s) -> bool {
+        for (char c : s) {
+            if (! std::isdigit(c)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    auto setter = [](const std::string& s,
+                     auto& value,
+                     unsigned long min,
+                     unsigned long max) -> bool {
+        unsigned long tmp = std::stoul(s);
+        if (tmp < min || tmp > max) {
+            return false;
+        }
+        value = static_cast<std::remove_cvref_t<decltype(value)>>(tmp);
+        return true;
+    };
+
+    std::vector<std::string> tokens = split_string(str, '/');
+    if (tokens.size() != 3) {
+        return false;
+    }
+
+    for (const auto& t : tokens) {
+        if (! validator(t)) {
+            return false;
+        }
+    }
+
+    if (! setter(tokens[0], month, 1, 12) || ! setter(tokens[1], day, 1, 31) ||
+        ! setter(tokens[2], year, 2000, 3000)) {
+        return false;
+    }
+
+    return true;
+}
