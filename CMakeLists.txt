@@ -23,6 +23,16 @@ set_target_properties(bvb_scraper_tool PROPERTIES COMPILE_FLAGS
     "-std=c++20 -Wall -Werror")
 target_link_libraries(bvb_scraper_tool ${CURL_LIBRARIES})
 
+add_executable(index_investing_tool
+    src/index_investing/main.cpp
+)
+target_include_directories(index_investing_tool PUBLIC
+    include
+    expected/include/tl
+    magic_enum/include)
+set_target_properties(index_investing_tool PROPERTIES COMPILE_FLAGS
+    "-std=c++20 -Wall -Werror")
+
 add_executable(set_unit_tests
     test/html_parser_test.cpp
     test/bvb_scraper_test.cpp
