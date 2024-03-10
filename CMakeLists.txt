@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.27)
 project(StockExchangeTools LANGUAGES CXX)
 
 find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(CMAKE_CXX_COMPILER "clang++-15")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +26,8 @@ target_link_libraries(bvb_scraper_tool ${CURL_LIBRARIES})
 
 add_executable(index_investing_tool
     src/index_investing/main.cpp
+    src/websocket_connection.cpp
+    src/tradeville.cpp
 )
 target_include_directories(index_investing_tool PUBLIC
     include
@@ -32,6 +35,7 @@ target_include_directories(index_investing_tool PUBLIC
     magic_enum/include)
 set_target_properties(index_investing_tool PROPERTIES COMPILE_FLAGS
     "-std=c++20 -Wall -Werror")
+target_link_libraries(index_investing_tool ${OPENSSL_LIBRARIES})
 
 add_executable(set_unit_tests
     test/html_parser_test.cpp

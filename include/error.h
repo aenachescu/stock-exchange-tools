@@ -34,6 +34,13 @@ enum class Error : uint32_t
     InvalidValue,
     UnexpectedData,
     InvalidArg,
+    SetSniFailed,
+    IpResolverFailed,
+    TcpConnectFailed,
+    SslHandshakeFailed,
+    WebsocketHandshakeFailed,
+    WebsocketWriteFailed,
+    WebsocketReadFailed,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ERROR_H
