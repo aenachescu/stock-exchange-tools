@@ -41,6 +41,7 @@ enum class Error : uint32_t
     WebsocketHandshakeFailed,
     WebsocketWriteFailed,
     WebsocketReadFailed,
+    FileNotFound,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ERROR_H

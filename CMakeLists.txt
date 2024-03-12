@@ -26,6 +26,8 @@ target_link_libraries(bvb_scraper_tool ${CURL_LIBRARIES})
 
 add_executable(index_investing_tool
     src/index_investing/main.cpp
+    src/index_investing/config.cpp
+    src/string_utils.cpp
     src/websocket_connection.cpp
     src/tradeville.cpp
 )
