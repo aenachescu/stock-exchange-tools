@@ -70,6 +70,25 @@ std::vector<std::string> split_string(const std::string& str, char delim)
     return vec;
 }
 
+std::vector<std::string> split_string(
+    const std::string& str,
+    const std::string& delim)
+{
+    std::vector<std::string> vec;
+    size_t pos_start = 0, pos_end;
+
+    while ((pos_end = str.find(delim, pos_start)) != std::string::npos) {
+        if (pos_end > pos_start) {
+            vec.push_back(str.substr(pos_start, pos_end - pos_start));
+        }
+        pos_start = pos_end + delim.length();
+    }
+
+    vec.push_back(str.substr(pos_start));
+
+    return vec;
+}
+
 bool parse_mdy_date(
     const std::string& str,
     uint8_t& month,
