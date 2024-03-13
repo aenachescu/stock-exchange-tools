@@ -15,6 +15,7 @@ add_executable(bvb_scraper_tool
     src/html_parser.cpp
     src/curl_utils.cpp
     src/string_utils.cpp
+    src/cli_utils.cpp
 )
 target_include_directories(bvb_scraper_tool PUBLIC
     include
@@ -28,6 +29,7 @@ add_executable(index_investing_tool
     src/index_investing/main.cpp
     src/index_investing/config.cpp
     src/string_utils.cpp
+    src/cli_utils.cpp
     src/websocket_connection.cpp
     src/tradeville.cpp
 )
