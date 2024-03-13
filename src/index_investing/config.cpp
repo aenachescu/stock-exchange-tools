@@ -15,6 +15,7 @@ Config::Config()
     DEF_SETTER(broker, m_broker);
     DEF_SETTER(tradeville_user, m_tradevilleUser);
     DEF_SETTER(tradeville_password, m_tradevillePass);
+    DEF_SETTER(tradeville_start_year, m_tradevilleStartYear);
     DEF_SETTER(stock_exchange, m_stockExchange);
     DEF_SETTER(index, m_indexName);
     DEF_SETTER(index_adjustment_date, m_indexAdjustmentDate);

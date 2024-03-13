@@ -37,6 +37,11 @@ public:
         return m_tradevillePass;
     }
 
+    const std::optional<std::string>& GetTradevilleStartYear() const
+    {
+        return m_tradevilleStartYear;
+    }
+
     const std::optional<std::string>& GetStockExchange() const
     {
         return m_stockExchange;
@@ -61,6 +66,7 @@ private:
     std::optional<std::string> m_broker;
     std::optional<std::string> m_tradevilleUser;
     std::optional<std::string> m_tradevillePass;
+    std::optional<std::string> m_tradevilleStartYear;
     std::optional<std::string> m_stockExchange;
     std::optional<std::string> m_indexName;
     std::optional<std::string> m_indexAdjustmentDate;

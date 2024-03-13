@@ -138,3 +138,22 @@ bool parse_mdy_date(
 
     return true;
 }
+
+bool is_number(const std::string& str)
+{
+    if (str.empty()) {
+        return false;
+    }
+
+    if (! std::isdigit(str[0]) || str[0] == '0') {
+        return false;
+    }
+
+    for (size_t i = 1; i < str.size(); i++) {
+        if (! std::isdigit(str[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}

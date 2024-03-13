@@ -23,4 +23,6 @@ bool parse_mdy_date(
     uint8_t& day,
     uint16_t& year);
 
+bool is_number(const std::string& str);
+
 #endif // STOCK_EXCHANGE_TOOLS_STRING_UTILS_H
