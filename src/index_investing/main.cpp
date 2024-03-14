@@ -105,6 +105,19 @@ int CmdPrintPortfolio(const Config& cfg)
 
     print_table(table);
 
+    std::cout << std::endl;
+    std::cout << "Value by asset and currency:" << std::endl;
+    auto assetAndCurrencyValue = portfolio->GetValueByAssetAndCurrency();
+    for (const auto& asset : assetAndCurrencyValue) {
+        std::cout << magic_enum::enum_name(asset.first) << ": ";
+        for (const auto& currency : asset.second) {
+            std::cout << double_to_string(currency.second) << " "
+                      << magic_enum::enum_name(currency.first) << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+
     return 0;
 }
 

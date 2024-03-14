@@ -1,5 +1,80 @@
 #include "tradeville.h"
 
+tl::expected<AssetValue, Error> Portfolio::GetValueByAsset(
+    Currency currency,
+    const ExchangeRates& rates) const
+{
+    AssetValue res;
+
+    for (const auto& e : entries) {
+        double val = 0.0;
+        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
+            val = std::get<uint64_t>(e.quantity) * e.market_price;
+        } else {
+            val = std::get<double>(e.quantity) * e.market_price;
+        }
+
+        if (e.currency != currency) {
+            auto rateIt = rates.find(e.currency);
+            if (rateIt == rates.end()) {
+                return tl::unexpected(Error::InvalidArg);
+            }
+
+            val *= rateIt->second;
+        }
+
+        auto it = res.emplace(e.asset, val);
+        if (it.second == false) {
+            it.first->second += val;
+        }
+    }
+
+    return res;
+}
+
+CurrencyValue Portfolio::GetValueByCurrency() const
+{
+    CurrencyValue res;
+
+    for (const auto& e : entries) {
+        double val = 0.0;
+        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
+            val = std::get<uint64_t>(e.quantity) * e.market_price;
+        } else {
+            val = std::get<double>(e.quantity) * e.market_price;
+        }
+
+        auto it = res.emplace(e.currency, val);
+        if (it.second == false) {
+            it.first->second += val;
+        }
+    }
+
+    return res;
+}
+
+AssetAndCurrencyValue Portfolio::GetValueByAssetAndCurrency() const
+{
+    AssetAndCurrencyValue res;
+
+    for (const auto& e : entries) {
+        double val = 0.0;
+        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
+            val = std::get<uint64_t>(e.quantity) * e.market_price;
+        } else {
+            val = std::get<double>(e.quantity) * e.market_price;
+        }
+
+        auto assetIt    = res.emplace(e.asset, CurrencyValue{});
+        auto currencyIt = assetIt.first->second.emplace(e.currency, val);
+        if (currencyIt.second == false) {
+            currencyIt.first->second += val;
+        }
+    }
+
+    return res;
+}
+
 tl::expected<Portfolio, Error> Tradeville::GetPortfolio()
 {
     static constexpr const char* kRequest =

@@ -10,6 +10,7 @@
 #include "websocket_connection.h"
 
 #include <expected.hpp>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -19,6 +20,10 @@
 // rapidjson
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
+
+using AssetValue            = std::map<AssetType, double>;
+using CurrencyValue         = std::map<Currency, double>;
+using AssetAndCurrencyValue = std::map<AssetType, CurrencyValue>;
 
 struct Portfolio
 {
@@ -32,6 +37,12 @@ struct Portfolio
         Currency currency                       = Currency::Unknown;
         AssetType asset                         = AssetType::Unknown;
     };
+
+    tl::expected<AssetValue, Error> GetValueByAsset(
+        Currency currency,
+        const ExchangeRates& rates) const;
+    CurrencyValue GetValueByCurrency() const;
+    AssetAndCurrencyValue GetValueByAssetAndCurrency() const;
 
     std::vector<Entry> entries;
 };
