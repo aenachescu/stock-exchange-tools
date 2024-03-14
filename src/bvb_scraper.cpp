@@ -41,12 +41,12 @@ tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
         return tl::unexpected(rsp.error());
     }
 
-    auto res = ParseIndexesNames(rsp.value().body);
+    auto res = ParseIndexesNames(rsp->body);
     if (! res) {
         return tl::unexpected(res.error());
     }
 
-    return std::move(res.value().names);
+    return std::move(res->names);
 }
 
 tl::expected<IndexesPerformance, Error> BvbScraper::GetIndexesPerformance()
@@ -56,7 +56,7 @@ tl::expected<IndexesPerformance, Error> BvbScraper::GetIndexesPerformance()
         return tl::unexpected(rsp.error());
     }
 
-    return ParseIndexesPerformance(rsp.value().body);
+    return ParseIndexesPerformance(rsp->body);
 }
 
 tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
@@ -66,34 +66,34 @@ tl::expected<Index, Error> BvbScraper::GetConstituents(const IndexName& name)
         return tl::unexpected(rsp.error());
     }
 
-    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    auto indexesDetails = ParseIndexesNames(rsp->body);
     if (! indexesDetails) {
         return tl::unexpected(indexesDetails.error());
     }
 
-    if (indexesDetails.value().selected == name) {
-        return ParseConstituents(rsp.value().body, name);
+    if (indexesDetails->selected == name) {
+        return ParseConstituents(rsp->body, name);
     }
 
     auto it = std::find(
-        indexesDetails.value().names.begin(),
-        indexesDetails.value().names.end(),
+        indexesDetails->names.begin(),
+        indexesDetails->names.end(),
         name);
-    if (it == indexesDetails.value().names.end()) {
+    if (it == indexesDetails->names.end()) {
         return tl::unexpected(Error::InvalidArg);
     }
 
-    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    auto reqData = ParseRequestDataFromMainPage(rsp->body);
     if (! reqData) {
         return tl::unexpected(reqData.error());
     }
 
-    rsp = SelectIndex(name, reqData.value());
+    rsp = SelectIndex(name, *reqData);
     if (! rsp) {
         return tl::unexpected(rsp.error());
     }
 
-    return ParseConstituents(rsp.value().body, name);
+    return ParseConstituents(rsp->body, name);
 }
 
 tl::expected<Indexes, Error> BvbScraper::GetAdjustmentsHistory(
@@ -104,42 +104,42 @@ tl::expected<Indexes, Error> BvbScraper::GetAdjustmentsHistory(
         return tl::unexpected(rsp.error());
     }
 
-    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    auto indexesDetails = ParseIndexesNames(rsp->body);
     if (! indexesDetails) {
         return tl::unexpected(indexesDetails.error());
     }
 
     auto it = std::find(
-        indexesDetails.value().names.begin(),
-        indexesDetails.value().names.end(),
+        indexesDetails->names.begin(),
+        indexesDetails->names.end(),
         name);
-    if (it == indexesDetails.value().names.end()) {
+    if (it == indexesDetails->names.end()) {
         return tl::unexpected(Error::InvalidArg);
     }
 
-    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    auto reqData = ParseRequestDataFromMainPage(rsp->body);
     if (! reqData) {
         return tl::unexpected(reqData.error());
     }
 
-    if (indexesDetails.value().selected != name) {
-        rsp = SelectIndex(name, reqData.value());
+    if (indexesDetails->selected != name) {
+        rsp = SelectIndex(name, *reqData);
         if (! rsp) {
             return tl::unexpected(rsp.error());
         }
 
-        reqData = ParseRequestDataFromPostRsp(rsp.value().body);
+        reqData = ParseRequestDataFromPostRsp(rsp->body);
         if (! reqData) {
             return tl::unexpected(reqData.error());
         }
     }
 
-    rsp = SelectAdjustmentsHistory(name, reqData.value());
+    rsp = SelectAdjustmentsHistory(name, *reqData);
     if (! rsp) {
         return tl::unexpected(rsp.error());
     }
 
-    return ParseAdjustmentsHistory(rsp.value().body, name);
+    return ParseAdjustmentsHistory(rsp->body, name);
 }
 
 tl::expected<IndexTradingData, Error> BvbScraper::GetTradingData(
@@ -150,42 +150,42 @@ tl::expected<IndexTradingData, Error> BvbScraper::GetTradingData(
         return tl::unexpected(rsp.error());
     }
 
-    auto indexesDetails = ParseIndexesNames(rsp.value().body);
+    auto indexesDetails = ParseIndexesNames(rsp->body);
     if (! indexesDetails) {
         return tl::unexpected(indexesDetails.error());
     }
 
     auto it = std::find(
-        indexesDetails.value().names.begin(),
-        indexesDetails.value().names.end(),
+        indexesDetails->names.begin(),
+        indexesDetails->names.end(),
         name);
-    if (it == indexesDetails.value().names.end()) {
+    if (it == indexesDetails->names.end()) {
         return tl::unexpected(Error::InvalidArg);
     }
 
-    auto reqData = ParseRequestDataFromMainPage(rsp.value().body);
+    auto reqData = ParseRequestDataFromMainPage(rsp->body);
     if (! reqData) {
         return tl::unexpected(reqData.error());
     }
 
-    if (indexesDetails.value().selected != name) {
-        rsp = SelectIndex(name, reqData.value());
+    if (indexesDetails->selected != name) {
+        rsp = SelectIndex(name, *reqData);
         if (! rsp) {
             return tl::unexpected(rsp.error());
         }
 
-        reqData = ParseRequestDataFromPostRsp(rsp.value().body);
+        reqData = ParseRequestDataFromPostRsp(rsp->body);
         if (! reqData) {
             return tl::unexpected(reqData.error());
         }
     }
 
-    rsp = SelectTradingData(name, reqData.value());
+    rsp = SelectTradingData(name, *reqData);
     if (! rsp) {
         return tl::unexpected(rsp.error());
     }
 
-    return ParseTradingData(rsp.value().body, name);
+    return ParseTradingData(rsp->body, name);
 }
 
 Error BvbScraper::SaveAdjustmentsHistoryToFile(
@@ -554,7 +554,7 @@ tl::expected<HttpResponse, Error> BvbScraper::GetIndicesProfilesPage()
         return rsp;
     }
 
-    if (rsp.value().code != 200) {
+    if (rsp->code != 200) {
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
@@ -622,7 +622,7 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectIndex(
         return rsp;
     }
 
-    if (rsp.value().code != 200) {
+    if (rsp->code != 200) {
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
@@ -688,7 +688,7 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectAdjustmentsHistory(
         return rsp;
     }
 
-    if (rsp.value().code != 200) {
+    if (rsp->code != 200) {
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
@@ -754,7 +754,7 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectTradingData(
         return rsp;
     }
 
-    if (rsp.value().code != 200) {
+    if (rsp->code != 200) {
         return tl::unexpected(Error::UnexpectedResponseCode);
     }
 
@@ -778,8 +778,8 @@ tl::expected<std::string_view, Error> BvbScraper::
     }
 
     std::string_view beginTag(
-        data.c_str() + inputLocation.value().beginTag.Lower(),
-        inputLocation.value().beginTag.Size());
+        data.c_str() + inputLocation->beginTag.Lower(),
+        inputLocation->beginTag.Size());
 
     size_t valueStartPos = beginTag.find(kValueTag);
     if (valueStartPos == std::string_view::npos) {
@@ -793,7 +793,7 @@ tl::expected<std::string_view, Error> BvbScraper::
     }
 
     return std::string_view(
-        data.c_str() + inputLocation.value().beginTag.Lower() + valueStartPos,
+        data.c_str() + inputLocation->beginTag.Lower() + valueStartPos,
         valueEndPos - valueStartPos);
 }
 
@@ -808,7 +808,7 @@ tl::expected<BvbScraper::RequestData, Error> BvbScraper::
     if (! fieldValue) {                                                        \
         return tl::unexpected(fieldValue.error());                             \
     }                                                                          \
-    reqData.field = fieldValue.value();
+    reqData.field = *fieldValue;
 
     PARSE_FIELD_OR_RETURN_IF_ERROR(eventTarget, "__EVENTTARGET");
     PARSE_FIELD_OR_RETURN_IF_ERROR(eventArg, "__EVENTARGUMENT");
@@ -855,7 +855,7 @@ tl::expected<BvbScraper::RequestData, Error> BvbScraper::
     if (! fieldValue) {                                                        \
         return tl::unexpected(fieldValue.error());                             \
     }                                                                          \
-    reqData.field = fieldValue.value();
+    reqData.field = *fieldValue;
 
     PARSE_FIELD_OR_RETURN_IF_ERROR(eventTarget, "|__EVENTTARGET|");
     PARSE_FIELD_OR_RETURN_IF_ERROR(eventArg, "|__EVENTARGUMENT|");
@@ -894,8 +894,8 @@ tl::expected<std::string_view, Error> BvbScraper::ParseTradingDataTime(
     }
 
     std::string_view divData(
-        data.c_str() + divLocation.value().data.Lower(),
-        divLocation.value().data.Size());
+        data.c_str() + divLocation->data.Lower(),
+        divLocation->data.Size());
 
     size_t beginMarkPos = divData.find(kTimeBeginMark);
     if (beginMarkPos == std::string_view::npos) {
@@ -943,77 +943,73 @@ tl::expected<Table, Error> BvbScraper::ParseTable(
         return tl::unexpected(tableLocation.error());
     }
 
-    auto theadLocation =
-        html.FindElement(HtmlTag::Thead, tableLocation.value().data);
+    auto theadLocation = html.FindElement(HtmlTag::Thead, tableLocation->data);
     if (! theadLocation) {
         return tl::unexpected(theadLocation.error());
     }
 
-    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation.value().data);
+    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation->data);
     if (! trLocation) {
         return tl::unexpected(trLocation.error());
     }
 
-    auto thLocations =
-        html.FindAllElements(HtmlTag::Th, trLocation.value().data);
+    auto thLocations = html.FindAllElements(HtmlTag::Th, trLocation->data);
     if (! thLocations) {
         return tl::unexpected(thLocations.error());
     }
 
-    if (thLocations.value().size() != columns.size()) {
+    if (thLocations->size() != columns.size()) {
         return tl::unexpected(Error::UnexpectedData);
     }
 
     for (size_t i = 0; i < columns.size(); i++) {
         std::string_view val(
-            data.c_str() + thLocations.value()[i].data.Lower(),
-            thLocations.value()[i].data.Size());
+            data.c_str() + (*thLocations)[i].data.Lower(),
+            (*thLocations)[i].data.Size());
         if (val != columns[i].name) {
             return tl::unexpected(Error::InvalidData);
         }
     }
 
-    auto tbodyLocation =
-        html.FindElement(HtmlTag::Tbody, tableLocation.value().data);
+    auto tbodyLocation = html.FindElement(HtmlTag::Tbody, tableLocation->data);
     if (! tbodyLocation) {
         return tl::unexpected(tbodyLocation.error());
     }
 
-    auto trLocations =
-        html.FindAllElements(HtmlTag::Tr, tbodyLocation.value().data);
+    auto trLocations = html.FindAllElements(HtmlTag::Tr, tbodyLocation->data);
     if (! trLocations) {
         return tl::unexpected(trLocations.error());
     }
 
-    for (const auto& loc : trLocations.value()) {
+    for (const auto& loc : *trLocations) {
         auto tdLocations = html.FindAllElements(HtmlTag::Td, loc.data);
         if (! tdLocations) {
             return tl::unexpected(tdLocations.error());
         }
 
-        if (tdLocations.value().size() != columns.size()) {
+        if (tdLocations->size() != columns.size()) {
             return tl::unexpected(Error::UnexpectedData);
         }
 
         Entry entry;
 
-        for (size_t i = 0; i < tdLocations.value().size(); i++) {
+        for (size_t i = 0; i < tdLocations->size(); i++) {
             std::string val;
             if (columns[i].innerTag != HtmlTag::None) {
                 auto innerLocation = html.FindElement(
                     columns[i].innerTag,
-                    tdLocations.value()[i].data);
+                    (*tdLocations)[i].data);
                 if (! innerLocation) {
                     return tl::unexpected(innerLocation.error());
                 }
 
                 val = data.substr(
-                    innerLocation.value().data.Lower(),
-                    innerLocation.value().data.Size());
+                    innerLocation->data.Lower(),
+                    innerLocation->data.Size());
             } else {
                 val = data.substr(
-                    tdLocations.value()[i].data.Lower(),
-                    tdLocations.value()[i].data.Size());
+                    (*tdLocations)[i].data.Lower(),
+                    (*tdLocations)[i].data.Size());
             }
 
             if (! columns[i].validator(val)) {
@@ -1047,12 +1043,12 @@ tl::expected<BvbScraper::IndexesDetails, Error> BvbScraper::ParseIndexesNames(
     }
 
     auto optionLocations =
-        html.FindAllElements(HtmlTag::Option, selectLocation.value().data);
+        html.FindAllElements(HtmlTag::Option, selectLocation->data);
     if (! optionLocations) {
         return tl::unexpected(optionLocations.error());
     }
 
-    for (const auto& loc : optionLocations.value()) {
+    for (const auto& loc : *optionLocations) {
         if (loc.data.Empty()) {
             return tl::unexpected(Error::NoData);
         }
@@ -1210,9 +1206,9 @@ tl::expected<Index, Error> BvbScraper::ParseConstituents(
         }
     }
 
-    res.value().name   = indexName;
-    res.value().date   = "real-time";
-    res.value().reason = "Index Composition";
+    res->name   = indexName;
+    res->date   = "real-time";
+    res->reason = "Index Composition";
 
     return res;
 }
@@ -1320,77 +1316,72 @@ tl::expected<Indexes, Error> BvbScraper::ParseAdjustmentsHistory(
         return tl::unexpected(tableLocation.error());
     }
 
-    auto theadLocation =
-        html.FindElement(HtmlTag::Thead, tableLocation.value().data);
+    auto theadLocation = html.FindElement(HtmlTag::Thead, tableLocation->data);
     if (! theadLocation) {
         return tl::unexpected(theadLocation.error());
     }
 
-    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation.value().data);
+    auto trLocation = html.FindElement(HtmlTag::Tr, theadLocation->data);
     if (! trLocation) {
         return tl::unexpected(trLocation.error());
     }
 
-    auto thLocations =
-        html.FindAllElements(HtmlTag::Th, trLocation.value().data);
+    auto thLocations = html.FindAllElements(HtmlTag::Th, trLocation->data);
     if (! thLocations) {
         return tl::unexpected(thLocations.error());
     }
 
-    if (thLocations.value().size() != kColumnNames.size()) {
+    if (thLocations->size() != kColumnNames.size()) {
         return tl::unexpected(Error::UnexpectedData);
     }
 
     for (size_t i = 0; i < kColumnNames.size(); i++) {
         std::string_view val(
-            data.c_str() + thLocations.value()[i].data.Lower(),
-            thLocations.value()[i].data.Size());
+            data.c_str() + (*thLocations)[i].data.Lower(),
+            (*thLocations)[i].data.Size());
         if (val != kColumnNames[i]) {
             return tl::unexpected(Error::InvalidData);
         }
     }
 
-    auto tbodyLocation =
-        html.FindElement(HtmlTag::Tbody, tableLocation.value().data);
+    auto tbodyLocation = html.FindElement(HtmlTag::Tbody, tableLocation->data);
     if (! tbodyLocation) {
         return tl::unexpected(tbodyLocation.error());
     }
 
-    auto trLocations =
-        html.FindAllElements(HtmlTag::Tr, tbodyLocation.value().data);
+    auto trLocations = html.FindAllElements(HtmlTag::Tr, tbodyLocation->data);
     if (! trLocations) {
         return tl::unexpected(trLocations.error());
     }
 
-    for (const auto& loc : trLocations.value()) {
+    for (const auto& loc : *trLocations) {
         auto tdLocations = html.FindAllElements(HtmlTag::Td, loc.data);
         if (! tdLocations) {
             return tl::unexpected(tdLocations.error());
         }
 
-        if (tdLocations.value().size() != kColumnNames.size()) {
+        if (tdLocations->size() != kColumnNames.size()) {
             return tl::unexpected(Error::UnexpectedData);
         }
 
-        if (tdLocations.value()[0].data.Empty() == false) {
+        if ((*tdLocations)[0].data.Empty() == false) {
             return tl::unexpected(Error::UnexpectedData);
         }
 
-        auto index =
-            ParseAdjustmentsHistoryEntry(data, tdLocations.value()[3].data);
+        auto index = ParseAdjustmentsHistoryEntry(data, (*tdLocations)[3].data);
         if (! index) {
             return tl::unexpected(index.error());
         }
 
-        index.value().name = indexName;
-        index.value().date.assign(
-            data.c_str() + tdLocations.value()[1].data.Lower(),
-            tdLocations.value()[1].data.Size());
-        index.value().reason.assign(
-            data.c_str() + tdLocations.value()[2].data.Lower(),
-            tdLocations.value()[2].data.Size());
+        index->name = indexName;
+        index->date.assign(
+            data.c_str() + (*tdLocations)[1].data.Lower(),
+            (*tdLocations)[1].data.Size());
+        index->reason.assign(
+            data.c_str() + (*tdLocations)[2].data.Lower(),
+            (*tdLocations)[2].data.Size());
 
-        indexes.push_back(std::move(index.value()));
+        indexes.push_back(std::move(*index));
     }
 
     return std::move(indexes);
@@ -1467,8 +1458,8 @@ tl::expected<IndexTradingData, Error> BvbScraper::ParseTradingData(
         return tl::unexpected(date.error());
     }
 
-    res.value().name = indexName;
-    res.value().date = date.value();
+    res->name = indexName;
+    res->date = *date;
 
     return res;
 }

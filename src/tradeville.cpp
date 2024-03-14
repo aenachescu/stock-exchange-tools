@@ -139,7 +139,7 @@ Error Tradeville::InitConnection()
         return rsp.error();
     }
 
-    if (VerifyLoginResponse(rsp.value()) == false) {
+    if (VerifyLoginResponse(*rsp) == false) {
         return Error::InvalidArg;
     }
 

@@ -28,7 +28,7 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
         return tl::unexpected(eTagMarks.error());
     }
 
-    const HtmlTagMarks& tagMarks = eTagMarks.value();
+    const HtmlTagMarks& tagMarks = *eTagMarks;
     size_t beginPos              = std::string::npos;
     size_t beginStopPos          = std::string::npos;
     size_t endPos                = std::string::npos;
@@ -40,13 +40,13 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
         if (! eBeginTagPos) {
             return tl::unexpected(eBeginTagPos.error());
         }
-        beginPos     = eBeginTagPos.value().beginPos;
-        beginStopPos = eBeginTagPos.value().beginStopPos;
+        beginPos     = eBeginTagPos->beginPos;
+        beginStopPos = eBeginTagPos->beginStopPos;
         endPos       = beginStopPos + tagMarks.beginStop.size();
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
-                eAttrMark.value(),
+                *eAttrMark,
                 {beginPos + tagMarks.begin.size(), beginStopPos - 1});
             if (attrPos == std::string::npos) {
                 continue;
@@ -65,7 +65,7 @@ tl::expected<HtmlElementLocation, Error> HtmlParser::FindElement(
                 return tl::unexpected(eCount.error());
             }
 
-            numOfBeginMarks += eCount.value();
+            numOfBeginMarks += *eCount;
             if (numOfBeginMarks == 0) {
                 break;
             }
@@ -108,7 +108,7 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
     }
 
     HtmlElementLocations locations;
-    const HtmlTagMarks& tagMarks = eTagMarks.value();
+    const HtmlTagMarks& tagMarks = *eTagMarks;
     size_t beginPos              = std::string::npos;
     size_t beginStopPos          = std::string::npos;
     size_t endPos                = std::string::npos;
@@ -124,13 +124,13 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
             }
             return tl::unexpected(eBeginTagPos.error());
         }
-        beginPos     = eBeginTagPos.value().beginPos;
-        beginStopPos = eBeginTagPos.value().beginStopPos;
+        beginPos     = eBeginTagPos->beginPos;
+        beginStopPos = eBeginTagPos->beginStopPos;
         endPos       = beginStopPos + tagMarks.beginStop.size();
 
         if (attr != HtmlAttribute::None) {
             attrPos = FindInInterval(
-                eAttrMark.value(),
+                *eAttrMark,
                 {beginPos + tagMarks.begin.size(), beginStopPos - 1});
             if (attrPos == std::string::npos) {
                 continue;
@@ -149,7 +149,7 @@ tl::expected<HtmlElementLocations, Error> HtmlParser::FindAllElements(
                 return tl::unexpected(eCount.error());
             }
 
-            numOfBeginMarks += eCount.value();
+            numOfBeginMarks += *eCount;
             if (numOfBeginMarks == 0) {
                 break;
             }

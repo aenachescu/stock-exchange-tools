@@ -74,13 +74,13 @@ TEST(BvbScraperTest, ParseIndexesNames)
 
     auto res = bvbTest.ParseIndexesNames(data);
     ASSERT_TRUE(res.has_value());
-    ASSERT_EQ(res.value().names.size(), expected.size());
+    ASSERT_EQ(res->names.size(), expected.size());
 
     for (size_t i = 0; i < expected.size(); i++) {
-        ASSERT_EQ(res.value().names[i], expected[i]);
+        ASSERT_EQ(res->names[i], expected[i]);
     }
 
-    ASSERT_EQ(res.value().selected, selected);
+    ASSERT_EQ(res->selected, selected);
 }
 
 TEST(BvbScraperTest, ParseIndexesPerformance)
@@ -113,16 +113,16 @@ TEST(BvbScraperTest, ParseIndexesPerformance)
 
     auto res = bvbTest.ParseIndexesPerformance(data);
     ASSERT_TRUE(res.has_value());
-    ASSERT_EQ(res.value().size(), expected.size());
+    ASSERT_EQ(res->size(), expected.size());
 
     for (size_t i = 0; i < expected.size(); i++) {
-        ASSERT_EQ(res.value()[i].name, expected[i].name);
-        ASSERT_DOUBLE_EQ(res.value()[i].today, expected[i].today);
-        ASSERT_DOUBLE_EQ(res.value()[i].one_week, expected[i].one_week);
-        ASSERT_DOUBLE_EQ(res.value()[i].one_month, expected[i].one_month);
-        ASSERT_DOUBLE_EQ(res.value()[i].six_months, expected[i].six_months);
-        ASSERT_DOUBLE_EQ(res.value()[i].one_year, expected[i].one_year);
-        ASSERT_DOUBLE_EQ(res.value()[i].year_to_date, expected[i].year_to_date);
+        ASSERT_EQ((*res)[i].name, expected[i].name);
+        ASSERT_DOUBLE_EQ((*res)[i].today, expected[i].today);
+        ASSERT_DOUBLE_EQ((*res)[i].one_week, expected[i].one_week);
+        ASSERT_DOUBLE_EQ((*res)[i].one_month, expected[i].one_month);
+        ASSERT_DOUBLE_EQ((*res)[i].six_months, expected[i].six_months);
+        ASSERT_DOUBLE_EQ((*res)[i].one_year, expected[i].one_year);
+        ASSERT_DOUBLE_EQ((*res)[i].year_to_date, expected[i].year_to_date);
     }
 }
 
@@ -170,31 +170,31 @@ TEST(BvbScraperTest, ParseConstituentsSelected)
     auto res = bvbTest.ParseConstituents(data, name);
     ASSERT_TRUE(res.has_value());
 
-    ASSERT_EQ(res.value().name, name);
-    ASSERT_EQ(res.value().date, date);
-    ASSERT_EQ(res.value().reason, reason);
-    ASSERT_EQ(res.value().companies.size(), companies.size());
+    ASSERT_EQ(res->name, name);
+    ASSERT_EQ(res->date, date);
+    ASSERT_EQ(res->reason, reason);
+    ASSERT_EQ(res->companies.size(), companies.size());
 
     for (size_t i = 0; i < companies.size(); i++) {
-        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
-        ASSERT_EQ(res.value().companies[i].name, companies[i].name);
-        ASSERT_EQ(res.value().companies[i].shares, companies[i].shares);
+        ASSERT_EQ(res->companies[i].symbol, companies[i].symbol);
+        ASSERT_EQ(res->companies[i].name, companies[i].name);
+        ASSERT_EQ(res->companies[i].shares, companies[i].shares);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].reference_price,
+            res->companies[i].reference_price,
             companies[i].reference_price);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].free_float_factor,
+            res->companies[i].free_float_factor,
             companies[i].free_float_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].representation_factor,
+            res->companies[i].representation_factor,
             companies[i].representation_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].price_correction_factor,
+            res->companies[i].price_correction_factor,
             companies[i].price_correction_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].liquidity_factor,
+            res->companies[i].liquidity_factor,
             companies[i].liquidity_factor);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+        ASSERT_DOUBLE_EQ(res->companies[i].weight, companies[i].weight);
     }
 }
 
@@ -252,31 +252,31 @@ TEST(BvbScraperTest, ParseConstituents)
     auto res = bvbTest.ParseConstituents(data, name);
     ASSERT_TRUE(res.has_value());
 
-    ASSERT_EQ(res.value().name, name);
-    ASSERT_EQ(res.value().date, date);
-    ASSERT_EQ(res.value().reason, reason);
-    ASSERT_EQ(res.value().companies.size(), companies.size());
+    ASSERT_EQ(res->name, name);
+    ASSERT_EQ(res->date, date);
+    ASSERT_EQ(res->reason, reason);
+    ASSERT_EQ(res->companies.size(), companies.size());
 
     for (size_t i = 0; i < companies.size(); i++) {
-        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
-        ASSERT_EQ(res.value().companies[i].name, companies[i].name);
-        ASSERT_EQ(res.value().companies[i].shares, companies[i].shares);
+        ASSERT_EQ(res->companies[i].symbol, companies[i].symbol);
+        ASSERT_EQ(res->companies[i].name, companies[i].name);
+        ASSERT_EQ(res->companies[i].shares, companies[i].shares);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].reference_price,
+            res->companies[i].reference_price,
             companies[i].reference_price);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].free_float_factor,
+            res->companies[i].free_float_factor,
             companies[i].free_float_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].representation_factor,
+            res->companies[i].representation_factor,
             companies[i].representation_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].price_correction_factor,
+            res->companies[i].price_correction_factor,
             companies[i].price_correction_factor);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].liquidity_factor,
+            res->companies[i].liquidity_factor,
             companies[i].liquidity_factor);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+        ASSERT_DOUBLE_EQ(res->companies[i].weight, companies[i].weight);
     }
 }
 
@@ -309,26 +309,24 @@ TEST(BvbScraperTest, ParseTradingData)
     auto res = bvbTest.ParseTradingData(data, name);
     ASSERT_TRUE(res.has_value());
 
-    ASSERT_EQ(res.value().name, name);
-    ASSERT_EQ(res.value().date, date);
-    ASSERT_EQ(res.value().companies.size(), companies.size());
+    ASSERT_EQ(res->name, name);
+    ASSERT_EQ(res->date, date);
+    ASSERT_EQ(res->companies.size(), companies.size());
 
     for (size_t i = 0; i < companies.size(); i++) {
-        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].price, companies[i].price);
+        ASSERT_EQ(res->companies[i].symbol, companies[i].symbol);
+        ASSERT_DOUBLE_EQ(res->companies[i].price, companies[i].price);
+        ASSERT_DOUBLE_EQ(res->companies[i].variation, companies[i].variation);
+        ASSERT_EQ(res->companies[i].trades, companies[i].trades);
+        ASSERT_EQ(res->companies[i].volume, companies[i].volume);
+        ASSERT_DOUBLE_EQ(res->companies[i].value, companies[i].value);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].variation,
-            companies[i].variation);
-        ASSERT_EQ(res.value().companies[i].trades, companies[i].trades);
-        ASSERT_EQ(res.value().companies[i].volume, companies[i].volume);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].value, companies[i].value);
-        ASSERT_DOUBLE_EQ(
-            res.value().companies[i].lowest_price,
+            res->companies[i].lowest_price,
             companies[i].lowest_price);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].highest_price,
+            res->companies[i].highest_price,
             companies[i].highest_price);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+        ASSERT_DOUBLE_EQ(res->companies[i].weight, companies[i].weight);
     }
 }
 
@@ -393,26 +391,24 @@ TEST(BvbScraperTest, ParseTradingDataWithMissingFields)
     auto res = bvbTest.ParseTradingData(data, name);
     ASSERT_TRUE(res.has_value());
 
-    ASSERT_EQ(res.value().name, name);
-    ASSERT_EQ(res.value().date, date);
-    ASSERT_EQ(res.value().companies.size(), companies.size());
+    ASSERT_EQ(res->name, name);
+    ASSERT_EQ(res->date, date);
+    ASSERT_EQ(res->companies.size(), companies.size());
 
     for (size_t i = 0; i < companies.size(); i++) {
-        ASSERT_EQ(res.value().companies[i].symbol, companies[i].symbol);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].price, companies[i].price);
+        ASSERT_EQ(res->companies[i].symbol, companies[i].symbol);
+        ASSERT_DOUBLE_EQ(res->companies[i].price, companies[i].price);
+        ASSERT_DOUBLE_EQ(res->companies[i].variation, companies[i].variation);
+        ASSERT_EQ(res->companies[i].trades, companies[i].trades);
+        ASSERT_EQ(res->companies[i].volume, companies[i].volume);
+        ASSERT_DOUBLE_EQ(res->companies[i].value, companies[i].value);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].variation,
-            companies[i].variation);
-        ASSERT_EQ(res.value().companies[i].trades, companies[i].trades);
-        ASSERT_EQ(res.value().companies[i].volume, companies[i].volume);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].value, companies[i].value);
-        ASSERT_DOUBLE_EQ(
-            res.value().companies[i].lowest_price,
+            res->companies[i].lowest_price,
             companies[i].lowest_price);
         ASSERT_DOUBLE_EQ(
-            res.value().companies[i].highest_price,
+            res->companies[i].highest_price,
             companies[i].highest_price);
-        ASSERT_DOUBLE_EQ(res.value().companies[i].weight, companies[i].weight);
+        ASSERT_DOUBLE_EQ(res->companies[i].weight, companies[i].weight);
     }
 }
 
@@ -512,10 +508,10 @@ TEST(BvbScraperTest, ParseAdjustmentsHistorySelected)
 
     auto res = bvbTest.ParseAdjustmentsHistory(data, name);
     ASSERT_TRUE(res.has_value());
-    ASSERT_EQ(res.value().size(), expectedIndexes.size());
+    ASSERT_EQ(res->size(), expectedIndexes.size());
 
     for (size_t i = 0; i < expectedIndexes.size(); i++) {
-        const auto& index = res.value()[i];
+        const auto& index = (*res)[i];
 
         ASSERT_EQ(index.name, expectedIndexes[i].name);
         ASSERT_EQ(index.date, expectedIndexes[i].date);
@@ -680,10 +676,10 @@ TEST(BvbScraperTest, ParseAdjustmentsHistory)
 
     auto res = bvbTest.ParseAdjustmentsHistory(data, name);
     ASSERT_TRUE(res.has_value());
-    ASSERT_EQ(res.value().size(), expectedIndexes.size());
+    ASSERT_EQ(res->size(), expectedIndexes.size());
 
     for (size_t i = 0; i < expectedIndexes.size(); i++) {
-        const auto& index = res.value()[i];
+        const auto& index = (*res)[i];
 
         ASSERT_EQ(index.name, expectedIndexes[i].name);
         ASSERT_EQ(index.date, expectedIndexes[i].date);

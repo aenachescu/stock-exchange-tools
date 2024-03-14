@@ -22,10 +22,10 @@ int cmd_print_indexes()
         return -1;
     }
 
-    table.reserve(r.value().size() + 1);
+    table.reserve(r->size() + 1);
     table.emplace_back(std::vector<std::string>{"#", "Index"});
 
-    for (const auto& i : r.value()) {
+    for (const auto& i : *r) {
         table.emplace_back(std::vector<std::string>{std::to_string(id), i});
         id++;
     }
@@ -48,7 +48,7 @@ int cmd_print_indexes_performance()
         return -1;
     }
 
-    table.reserve(r.value().size() + 1);
+    table.reserve(r->size() + 1);
     table.emplace_back(std::vector<std::string>{
         "#",
         "Index",
@@ -60,7 +60,7 @@ int cmd_print_indexes_performance()
         "YTD (%)",
     });
 
-    for (const auto& i : r.value()) {
+    for (const auto& i : *r) {
         table.emplace_back(std::vector<std::string>{
             std::to_string(id),
             i.name,
@@ -94,7 +94,7 @@ int cmd_print_index_constituents(const IndexName& indexName)
             return -1;
         }
 
-        names = r.value();
+        names = *r;
     } else {
         names.push_back(indexName);
     }
@@ -109,13 +109,13 @@ int cmd_print_index_constituents(const IndexName& indexName)
         }
 
         std::sort(
-            r.value().companies.begin(),
-            r.value().companies.end(),
+            r->companies.begin(),
+            r->companies.end(),
             [](Company a, Company b) { return a.weight > b.weight; });
 
         id = 1;
         table.clear();
-        table.reserve(r.value().companies.size() + 1);
+        table.reserve(r->companies.size() + 1);
         table.emplace_back(std::vector<std::string>{
             "#",
             "Symbol",
@@ -129,7 +129,7 @@ int cmd_print_index_constituents(const IndexName& indexName)
             "Weight (%)",
         });
 
-        for (const auto& i : r.value().companies) {
+        for (const auto& i : r->companies) {
             table.emplace_back(std::vector<std::string>{
                 std::to_string(id),
                 i.symbol,
@@ -145,9 +145,9 @@ int cmd_print_index_constituents(const IndexName& indexName)
             id++;
         }
 
-        std::cout << "Index name: " << r.value().name << std::endl;
-        std::cout << "Date: " << r.value().date << std::endl;
-        std::cout << "Reason: " << r.value().reason << std::endl;
+        std::cout << "Index name: " << r->name << std::endl;
+        std::cout << "Date: " << r->date << std::endl;
+        std::cout << "Reason: " << r->reason << std::endl;
         print_table(table);
         std::cout << std::endl;
     }
@@ -170,7 +170,7 @@ int cmd_print_adjustments_history(const IndexName& indexName, size_t count)
             return -1;
         }
 
-        names = r.value();
+        names = *r;
     } else {
         names.push_back(indexName);
     }
@@ -183,8 +183,8 @@ int cmd_print_adjustments_history(const IndexName& indexName, size_t count)
             return -1;
         }
 
-        for (size_t i = 0; i < r.value().size() && i < count; i++) {
-            Index& index = r.value()[i];
+        for (size_t i = 0; i < r->size() && i < count; i++) {
+            Index& index = (*r)[i];
             std::sort(
                 index.companies.begin(),
                 index.companies.end(),
@@ -248,7 +248,7 @@ int cmd_print_trading_data(const IndexName& indexName)
             return -1;
         }
 
-        names = r.value();
+        names = *r;
     } else {
         names.push_back(indexName);
     }
@@ -263,15 +263,15 @@ int cmd_print_trading_data(const IndexName& indexName)
         }
 
         std::sort(
-            r.value().companies.begin(),
-            r.value().companies.end(),
+            r->companies.begin(),
+            r->companies.end(),
             [](CompanyTradingData a, CompanyTradingData b) {
                 return a.weight > b.weight;
             });
 
         id = 1;
         table.clear();
-        table.reserve(r.value().companies.size() + 1);
+        table.reserve(r->companies.size() + 1);
         table.emplace_back(std::vector<std::string>{
             "#",
             "Symbol",
@@ -285,7 +285,7 @@ int cmd_print_trading_data(const IndexName& indexName)
             "Weight (%)",
         });
 
-        for (const auto& i : r.value().companies) {
+        for (const auto& i : r->companies) {
             table.emplace_back(std::vector<std::string>{
                 std::to_string(id),
                 i.symbol,
@@ -301,8 +301,8 @@ int cmd_print_trading_data(const IndexName& indexName)
             id++;
         }
 
-        std::cout << "Index name: " << r.value().name << std::endl;
-        std::cout << "Date: " << r.value().date << std::endl;
+        std::cout << "Index name: " << r->name << std::endl;
+        std::cout << "Date: " << r->date << std::endl;
         print_table(table);
         std::cout << std::endl;
     }
@@ -323,7 +323,7 @@ int cmd_save_adjustments_history(const IndexName& indexName)
             return -1;
         }
 
-        names = r.value();
+        names = *r;
     } else {
         names.push_back(indexName);
     }
@@ -336,7 +336,7 @@ int cmd_save_adjustments_history(const IndexName& indexName)
             continue;
         }
 
-        Error err = bvbScraper.SaveAdjustmentsHistoryToFile(name, r.value());
+        Error err = bvbScraper.SaveAdjustmentsHistoryToFile(name, *r);
         if (err != Error::NoError) {
             std::cout << "failed to save " << name
                       << " adjustments history: " << magic_enum::enum_name(err)
@@ -363,8 +363,8 @@ int cmd_load_adjustments_history(const IndexName& indexName)
         return -1;
     }
 
-    for (size_t i = 0; i < r.value().size(); i++) {
-        Index& index = r.value()[i];
+    for (size_t i = 0; i < r->size(); i++) {
+        Index& index = (*r)[i];
         std::sort(
             index.companies.begin(),
             index.companies.end(),
@@ -428,7 +428,7 @@ int cmd_update_adjustments_history(const IndexName& indexName)
             return -1;
         }
 
-        names = r.value();
+        names = *r;
     } else {
         names.push_back(indexName);
     }
@@ -453,7 +453,7 @@ int cmd_update_adjustments_history(const IndexName& indexName)
             continue;
         }
 
-        for (const auto& entry : fileHistory.value()) {
+        for (const auto& entry : *fileHistory) {
             if (! parse_mdy_date(entry.date, month, day, year)) {
                 std::cout << "failed to parse index date [" << entry.date << "]"
                           << std::endl;
@@ -462,7 +462,7 @@ int cmd_update_adjustments_history(const IndexName& indexName)
             mergedHistory.emplace(ComparableIndex(entry, year, month, day));
         }
 
-        for (const auto& entry : siteHistory.value()) {
+        for (const auto& entry : *siteHistory) {
             if (! parse_mdy_date(entry.date, month, day, year)) {
                 std::cout << "failed to parse index date [" << entry.date << "]"
                           << std::endl;
