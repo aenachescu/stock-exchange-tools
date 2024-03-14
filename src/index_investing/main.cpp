@@ -85,11 +85,27 @@ int CmdPrintPortfolio(const Config& cfg)
         "Quantity",
         "Avg price",
         "Market price",
+        "Cost",
+        "Value",
+        "P/L",
+        "P/L %",
         "Currency",
         "Asset",
     });
 
     for (const auto& i : portfolio->entries) {
+        double quantity = 0.0;
+        if (std::holds_alternative<uint64_t>(i.quantity) == true) {
+            quantity = std::get<uint64_t>(i.quantity);
+        } else {
+            quantity = std::get<double>(i.quantity);
+        }
+
+        double cost  = i.avg_price * quantity;
+        double value = i.market_price * quantity;
+        double pl    = value - cost;
+        double plp   = pl / cost * 100.0;
+
         table.emplace_back(std::vector<std::string>{
             std::to_string(id),
             i.account,
@@ -97,6 +113,10 @@ int CmdPrintPortfolio(const Config& cfg)
             quantity_to_string(i.quantity),
             double_to_string(i.avg_price, 4),
             double_to_string(i.market_price, 4),
+            double_to_string(cost),
+            double_to_string(value),
+            double_to_string(pl),
+            double_to_string(plp),
             std::string{magic_enum::enum_name(i.currency)},
             std::string{magic_enum::enum_name(i.asset)},
         });
