@@ -23,6 +23,30 @@ tl::expected<Portfolio, Error> Tradeville::GetPortfolio()
     return ParsePortfolio(*json);
 }
 
+tl::expected<Activities, Error> Tradeville::GetActivity(
+    std::optional<std::string> symbol,
+    uint64_t startYear,
+    uint64_t endYear)
+{
+    Error err = InitConnection();
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    std::string req = GetActivityRequest(symbol, startYear, endYear);
+    auto rsp        = m_wsConn.SendRequest(req);
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    auto json = ValidateActivityJson(*rsp, symbol, startYear, endYear);
+    if (! json) {
+        return tl::unexpected(json.error());
+    }
+
+    return ParseActivity(*json);
+}
+
 Error Tradeville::InitConnection()
 {
     if (m_wsConn.IsConnected() == true) {
@@ -400,6 +424,136 @@ Error Tradeville::ParsePortfolioCurrency(
     return Error::NoError;
 }
 
+std::string Tradeville::GetActivityRequest(
+    const std::optional<std::string>& symbol,
+    uint64_t startYear,
+    uint64_t endYear)
+{
+    rapidjson::StringBuffer strBuff;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(strBuff);
+    rapidjson::Document doc;
+    rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+    rapidjson::Value prm(rapidjson::kObjectType);
+    std::string dstart = "1jan" + std::to_string(startYear % 100);
+    std::string dend   = "31dec" + std::to_string(endYear % 100);
+
+    doc.SetObject();
+
+    if (symbol.has_value() == true) {
+        prm.AddMember(
+            "symbol",
+            rapidjson::Value{}.SetString(symbol->c_str(), allocator),
+            allocator);
+    } else {
+        prm.AddMember("symbol", rapidjson::Value{}.SetNull(), allocator);
+    }
+
+    prm.AddMember(
+        "dstart",
+        rapidjson::Value{}.SetString(dstart.c_str(), allocator),
+        allocator);
+    prm.AddMember(
+        "dend",
+        rapidjson::Value{}.SetString(dend.c_str(), allocator),
+        allocator);
+
+    doc.AddMember("cmd", "Activity", allocator);
+    doc.AddMember("prm", prm, allocator);
+
+    doc.Accept(writer);
+
+    return std::string(strBuff.GetString(), strBuff.GetSize());
+}
+
+tl::expected<rapidjson::Document, Error> Tradeville::ValidateActivityJson(
+    const std::string& data,
+    const std::optional<std::string>& symbol,
+    uint64_t startYear,
+    uint64_t endYear)
+{
+    static std::vector<std::string_view> kDataArrays = {
+        "Date",
+        "OpType",
+        "Symbol",
+        "Quantity",
+        "Price",
+        "Comission",
+        "Ammount",
+        "CashPos",
+        "InstrPos",
+        "Profit",
+        "TranzNo",
+        "Ccy",
+        "Obs",
+        "AvgPrice",
+        "OrderId",
+        "Tax",
+        "Market",
+    };
+
+    rapidjson::Document doc;
+    std::string dstart = "1jan" + std::to_string(startYear % 100);
+    std::string dend   = "31dec" + std::to_string(endYear % 100);
+
+    doc.Parse(data.c_str(), data.size());
+
+    if (doc.IsObject() == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (VerifyStrField(doc, "cmd", "Activity") == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    rapidjson::Value::ConstMemberIterator prmIt = doc.FindMember("prm");
+    if (prmIt == doc.MemberEnd()) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (prmIt->value.IsObject() == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (symbol) {
+        if (VerifyStrField(prmIt->value, "symbol", symbol->c_str()) == false) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+    } else {
+        if (VerifyNullField(prmIt->value, "symbol") == false) {
+            return tl::unexpected(Error::UnexpectedData);
+        }
+    }
+
+    if (VerifyStrField(prmIt->value, "dstart", dstart.c_str()) == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (VerifyStrField(prmIt->value, "dend", dend.c_str()) == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    rapidjson::Value::ConstMemberIterator dataIt = doc.FindMember("data");
+    if (dataIt == doc.MemberEnd()) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (dataIt->value.IsObject() == false) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    if (! VerifyArrays(dataIt->value, kDataArrays)) {
+        return tl::unexpected(Error::UnexpectedData);
+    }
+
+    return doc;
+}
+
+tl::expected<Activities, Error> Tradeville::ParseActivity(
+    const rapidjson::Document& doc)
+{
+    return Activities{};
+}
+
 bool Tradeville::VerifyStrField(
     const rapidjson::Value& doc,
     const std::string& name,
@@ -457,6 +611,22 @@ bool Tradeville::VerifyBoolField(
     }
 
     if (it->value.GetBool() != value) {
+        return false;
+    }
+
+    return true;
+}
+
+bool Tradeville::VerifyNullField(
+    const rapidjson::Value& doc,
+    const std::string& name)
+{
+    auto it = doc.FindMember(name.c_str());
+    if (it == doc.MemberEnd()) {
+        return false;
+    }
+
+    if (it->value.IsNull() == false) {
         return false;
     }
 

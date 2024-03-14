@@ -1,6 +1,7 @@
 #ifndef STOCK_EXCHANGE_TOOLS_TRADEVILLE_H
 #define STOCK_EXCHANGE_TOOLS_TRADEVILLE_H
 
+#include "activity_type.h"
 #include "asset_type.h"
 #include "currency.h"
 #include "error.h"
@@ -9,6 +10,7 @@
 #include "websocket_connection.h"
 
 #include <expected.hpp>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -27,12 +29,35 @@ struct Portfolio
         std::variant<uint64_t, double> quantity = 0ull;
         double avg_price                        = 0.0;
         double market_price                     = 0.0;
-        Currency currency;
-        AssetType asset;
+        Currency currency                       = Currency::Unknown;
+        AssetType asset                         = AssetType::Unknown;
     };
 
     std::vector<Entry> entries;
 };
+
+struct Activity
+{
+    std::string date;
+    std::string symbol;
+    std::string note;
+    std::string market;
+    ActivityType type       = ActivityType::Unknown;
+    Currency currency       = Currency::Unknown;
+    uint64_t transaction_id = 0;
+    uint64_t order_id       = 0;
+    uint64_t quantity       = 0;
+    uint64_t asset_position = 0;
+    double price            = 0.0;
+    double avg_price        = 0.0;
+    double commission       = 0.0;
+    double tax              = 0.0;
+    double cash_ammount     = 0.0;
+    double cash_position    = 0.0;
+    double profit           = 0.0;
+};
+
+using Activities = std::vector<Activity>;
 
 class Tradeville : private noncopyable, private nonmovable {
 private:
@@ -48,6 +73,10 @@ public:
     }
 
     tl::expected<Portfolio, Error> GetPortfolio();
+    tl::expected<Activities, Error> GetActivity(
+        std::optional<std::string> symbol,
+        uint64_t startYear,
+        uint64_t endYear);
 
 private:
     Error InitConnection();
@@ -81,6 +110,18 @@ private:
         const rapidjson::Value& doc,
         Portfolio& portfolio);
 
+    std::string GetActivityRequest(
+        const std::optional<std::string>& symbol,
+        uint64_t startYear,
+        uint64_t endYear);
+    tl::expected<rapidjson::Document, Error> ValidateActivityJson(
+        const std::string& data,
+        const std::optional<std::string>& symbol,
+        uint64_t startYear,
+        uint64_t endYear);
+    tl::expected<Activities, Error> ParseActivity(
+        const rapidjson::Document& doc);
+
     bool VerifyStrField(
         const rapidjson::Value& doc,
         const std::string& name,
@@ -93,6 +134,7 @@ private:
         const rapidjson::Value& doc,
         const std::string& name,
         bool value);
+    bool VerifyNullField(const rapidjson::Value& doc, const std::string& name);
     bool VerifyArrays(
         const rapidjson::Value& doc,
         const std::vector<std::string_view>& arrays);
