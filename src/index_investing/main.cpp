@@ -3,8 +3,19 @@
 #include "string_utils.h"
 #include "tradeville.h"
 
+#include <chrono>
 #include <iostream>
 #include <magic_enum.hpp>
+
+uint64_t GetCurrentYear()
+{
+    using namespace std::chrono;
+
+    int year = static_cast<int>(
+        year_month_day{time_point_cast<days>(system_clock::now())}.year());
+
+    return static_cast<uint64_t>(year);
+}
 
 bool IsValidConfig(const Config& cfg)
 {
@@ -23,6 +34,16 @@ bool IsValidConfig(const Config& cfg)
         return false;
     }
 
+    if (! cfg.GetTradevilleStartYear()) {
+        std::cout << "tradeville start year is not set" << std::endl;
+        return false;
+    }
+
+    if (! is_number(*cfg.GetTradevilleStartYear())) {
+        std::cout << "tradeville start year is not number" << std::endl;
+        return false;
+    }
+
     if (! cfg.GetIndexName()) {
         std::cout << "index is not set" << std::endl;
         return false;
@@ -36,10 +57,11 @@ bool IsValidConfig(const Config& cfg)
     return true;
 }
 
-void PrintPortfolio(const Portfolio& portfolio)
+int CmdPrintPortfolio(const Config& cfg)
 {
     Table table;
     size_t id = 1;
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
 
     auto quantity_to_string = [](const std::variant<uint64_t, double>& q) {
         if (std::holds_alternative<uint64_t>(q) == true) {
@@ -48,7 +70,14 @@ void PrintPortfolio(const Portfolio& portfolio)
         return double_to_string(std::get<double>(q));
     };
 
-    table.reserve(portfolio.entries.size() + 1);
+    auto portfolio = tv.GetPortfolio();
+    if (! portfolio) {
+        std::cout << "Failed to get portfolio: "
+                  << magic_enum::enum_name(portfolio.error()) << std::endl;
+        return -1;
+    }
+
+    table.reserve(portfolio->entries.size() + 1);
     table.emplace_back(std::vector<std::string>{
         "#",
         "Account",
@@ -60,7 +89,7 @@ void PrintPortfolio(const Portfolio& portfolio)
         "Asset",
     });
 
-    for (const auto& i : portfolio.entries) {
+    for (const auto& i : portfolio->entries) {
         table.emplace_back(std::vector<std::string>{
             std::to_string(id),
             i.account,
@@ -75,9 +104,70 @@ void PrintPortfolio(const Portfolio& portfolio)
     }
 
     print_table(table);
+
+    return 0;
 }
 
-int main()
+int CmdPrintActivity(const Config& cfg)
+{
+    Table table;
+    size_t id = 1;
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+    uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
+    uint64_t endYear   = GetCurrentYear();
+
+    auto activities = tv.GetActivity(std::nullopt, startYear, endYear);
+    if (! activities) {
+        std::cout << "Failed to get activity: "
+                  << magic_enum::enum_name(activities.error()) << std::endl;
+        return -1;
+    }
+
+    table.reserve(activities->size() + 1);
+    table.emplace_back(std::vector<std::string>{
+        "#",
+        "Date",
+        "Type",
+        "Symbol",
+        "Quantity",
+        "Price",
+        "Commission",
+        "Tax",
+        "Ammount",
+        "Currency",
+        "Note",
+    });
+
+    for (const auto& i : *activities) {
+        table.emplace_back(std::vector<std::string>{
+            std::to_string(id),
+            i.date,
+            std::string{magic_enum::enum_name(i.type)},
+            i.symbol,
+            std::to_string(i.quantity),
+            double_to_string(i.price, 4),
+            double_to_string(i.commission, 4),
+            double_to_string(i.tax, 4),
+            double_to_string(i.cash_ammount, 4),
+            std::string{magic_enum::enum_name(i.currency)},
+            i.note,
+        });
+        id++;
+    }
+
+    print_table(table);
+
+    return 0;
+}
+
+void CmdPrintHelp()
+{
+    std::cout << "Supported commands:" << std::endl;
+    std::cout << "--ptvp - prints the portfolio from tradeville" << std::endl;
+    std::cout << "--ptva - prints the activity from tradeville" << std::endl;
+}
+
+int main(int argc, char* argv[])
 {
     Config cfg;
     Error err = cfg.LoadConfig();
@@ -90,15 +180,23 @@ int main()
         return -1;
     }
 
-    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
-    auto portfolio = tv.GetPortfolio();
-    if (! portfolio) {
-        std::cout << "Failed to get portfolio: "
-                  << magic_enum::enum_name(portfolio.error()) << std::endl;
+    if (argc < 2) {
+        std::cout << "no command" << std::endl;
+        CmdPrintHelp();
         return -1;
     }
 
-    PrintPortfolio(*portfolio);
+    if (strcmp(argv[1], "--ptvp") == 0) {
+        return CmdPrintPortfolio(cfg);
+    } else if (strcmp(argv[1], "--ptva") == 0) {
+        return CmdPrintActivity(cfg);
+    } else if (strcmp(argv[1], "--help") == 0) {
+        CmdPrintHelp();
+        return 0;
+    }
 
-    return 0;
+    std::cout << "unknown command" << std::endl;
+    CmdPrintHelp();
+
+    return -1;
 }
