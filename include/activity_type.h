@@ -8,6 +8,7 @@ enum class ActivityType
     Sell,
     Dividend,
     Deposit,
+    AssetTransfer,
     Tax,
 };
 
