@@ -209,11 +209,69 @@ int CmdPrintActivity(const Config& cfg)
     return 0;
 }
 
+int CmdPrintDividends(const Config& cfg, uint64_t startYear, uint64_t endYear)
+{
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+    std::map<uint64_t, std::map<Currency, double>> dividends;
+    uint64_t year = 0;
+
+    auto activities = tv.GetActivity(std::nullopt, startYear, endYear);
+    if (! activities) {
+        std::cout << "Failed to get activity: "
+                  << magic_enum::enum_name(activities.error()) << std::endl;
+        return -1;
+    }
+
+    for (size_t i = startYear; i <= endYear; i++) {
+        dividends.emplace(i, std::map<Currency, double>{});
+    }
+
+    for (const auto& activity : *activities) {
+        if (activity.type != ActivityType::Dividend) {
+            continue;
+        }
+
+        if (get_year_from_ymd(activity.date, year) == false) {
+            std::cout << "Failed to parse year from [" << activity.date << "]"
+                      << std::endl;
+            return -1;
+        }
+
+        if (year < startYear || year > endYear) {
+            continue;
+        }
+
+        auto& currencyMap = dividends[year];
+        auto res =
+            currencyMap.emplace(activity.currency, activity.cash_ammount);
+        if (res.second == false) {
+            res.first->second += activity.cash_ammount;
+        }
+    }
+
+    for (const auto& dvd : dividends) {
+        std::cout << dvd.first << ": ";
+        for (const auto& entry : dvd.second) {
+            std::cout << double_to_string(entry.second)
+                      << magic_enum::enum_name(entry.first) << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
+
 void CmdPrintHelp()
 {
     std::cout << "Supported commands:" << std::endl;
     std::cout << "--ptvp - prints the portfolio from tradeville" << std::endl;
     std::cout << "--ptva - prints the activity from tradeville" << std::endl;
+    std::cout << "--ptvd <start_year> <end_year> - prints the dividend from "
+                 "tradeville activity. If only start_year is set then it "
+                 "prints the dividends just for that year. If both are set "
+                 "then it prints dividends for each year from interval. If no "
+                 "one is set then it prints dividends for current year."
+              << std::endl;
 }
 
 int main(int argc, char* argv[])
@@ -239,6 +297,18 @@ int main(int argc, char* argv[])
         return CmdPrintPortfolio(cfg);
     } else if (strcmp(argv[1], "--ptva") == 0) {
         return CmdPrintActivity(cfg);
+    } else if (strcmp(argv[1], "--ptvd") == 0) {
+        uint64_t startYear, endYear;
+        if (argc == 2) {
+            startYear = endYear = GetCurrentYear();
+        } else if (argc == 3) {
+            startYear = endYear = std::stoull(argv[2]);
+        } else {
+            startYear = std::stoull(argv[2]);
+            endYear   = std::stoull(argv[3]);
+        }
+
+        return CmdPrintDividends(cfg, startYear, endYear);
     } else if (strcmp(argv[1], "--help") == 0) {
         CmdPrintHelp();
         return 0;

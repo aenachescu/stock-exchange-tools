@@ -156,6 +156,21 @@ bool parse_mdy_date(
     return true;
 }
 
+bool get_year_from_ymd(const std::string& str, uint64_t& year)
+{
+    if (str.size() < 5) {
+        return false;
+    }
+
+    if (str[4] != '-') {
+        return false;
+    }
+
+    year = std::stoull(str.substr(0, 4));
+
+    return true;
+}
+
 bool is_number(const std::string& str)
 {
     if (str.empty()) {

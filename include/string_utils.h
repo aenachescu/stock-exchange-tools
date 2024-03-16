@@ -23,6 +23,8 @@ bool parse_mdy_date(
     uint8_t& day,
     uint16_t& year);
 
+bool get_year_from_ymd(const std::string& str, uint64_t& year);
+
 bool is_number(const std::string& str);
 
 bool string_contains_ci(const std::string& str1, const std::string& str2);
