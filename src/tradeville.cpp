@@ -1,5 +1,9 @@
 #include "tradeville.h"
 
+#include "string_utils.h"
+
+#include <magic_enum.hpp>
+
 tl::expected<AssetValue, Error> Portfolio::GetValueByAsset(
     Currency currency,
     const ExchangeRates& rates) const
@@ -626,7 +630,467 @@ tl::expected<rapidjson::Document, Error> Tradeville::ValidateActivityJson(
 tl::expected<Activities, Error> Tradeville::ParseActivity(
     const rapidjson::Document& doc)
 {
-    return Activities{};
+    Activities activities;
+    rapidjson::Value::ConstMemberIterator dataIt = doc.FindMember("data");
+    Error err                                    = Error::NoError;
+
+    activities.resize(
+        dataIt->value.FindMember("Date")->value.GetArray().Size());
+
+    err = ParseActivityDate(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityNote(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivitySymbol(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityType(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityQuantity(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityPrice(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityCommission(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityCashAmmount(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityCashPosition(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityAssetPosition(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityProfit(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityTransactionId(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityCurrency(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityAvgPrice(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityOrderId(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityTax(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    err = ParseActivityMarket(dataIt->value, activities);
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    return activities;
+}
+
+Error Tradeville::ParseActivityDate(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto dateArray = doc.FindMember("Date")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (dateArray[i].IsString() == false) {
+            return Error::TradevilleInvalidDate;
+        }
+        activities[i].date = dateArray[i].GetString();
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityType(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto typeArray = doc.FindMember("OpType")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (typeArray[i].IsString() == false) {
+            return Error::TradevilleInvalidActivityType;
+        }
+        if (std::string_view{"Buy"} == typeArray[i].GetString()) {
+            activities[i].type = ActivityType::Buy;
+        } else if (std::string_view{"Sell"} == typeArray[i].GetString()) {
+            activities[i].type = ActivityType::Sell;
+        } else if (std::string_view{"X"} == typeArray[i].GetString()) {
+            activities[i].type = ActivityType::Tax;
+        } else if (std::string_view{"In"} == typeArray[i].GetString()) {
+            if (string_contains_ci(activities[i].note, "dividend")) {
+                activities[i].type = ActivityType::Dividend;
+                continue;
+            }
+
+            auto currency = magic_enum::enum_cast<Currency>(
+                activities[i].symbol,
+                magic_enum::case_insensitive);
+            if (! currency || currency == Currency::Unknown) {
+                activities[i].type = ActivityType::AssetTransfer;
+            } else {
+                activities[i].type = ActivityType::Deposit;
+            }
+        } else {
+            return Error::TradevilleInvalidActivityType;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivitySymbol(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto symbolArray = doc.FindMember("Symbol")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (symbolArray[i].IsString() == false) {
+            return Error::TradevilleInvalidSymbol;
+        }
+        activities[i].symbol = symbolArray[i].GetString();
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityQuantity(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto quantityArray = doc.FindMember("Quantity")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (activities[i].type == ActivityType::Buy ||
+            activities[i].type == ActivityType::Sell ||
+            activities[i].type == ActivityType::AssetTransfer) {
+            if (quantityArray[i].IsUint64() == false) {
+                return Error::TradevilleInvalidQuantity;
+            }
+            activities[i].quantity = quantityArray[i].GetUint64();
+        } else if (
+            activities[i].type == ActivityType::Deposit ||
+            activities[i].type == ActivityType::Dividend) {
+            if (quantityArray[i].IsUint64() == true) {
+                activities[i].quantity = quantityArray[i].GetUint64();
+            } else if (quantityArray[i].IsDouble() == true) {
+                activities[i].quantity = quantityArray[i].GetDouble();
+            } else {
+                return Error::TradevilleInvalidQuantity;
+            }
+        } else if (activities[i].type == ActivityType::Tax) {
+            if (quantityArray[i].IsUint64() == false ||
+                quantityArray[i].GetUint64() != 0) {
+                return Error::TradevilleInvalidQuantity;
+            }
+            activities[i].quantity = 0ull;
+        } else {
+            return Error::TradevilleInvalidActivityType;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityPrice(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto priceArray = doc.FindMember("Price")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (activities[i].type == ActivityType::Buy ||
+            activities[i].type == ActivityType::Sell ||
+            activities[i].type == ActivityType::AssetTransfer) {
+            if (priceArray[i].IsUint64() == true) {
+                activities[i].price =
+                    static_cast<double>(priceArray[i].GetUint64());
+            } else if (priceArray[i].IsDouble() == true) {
+                activities[i].price = priceArray[i].GetDouble();
+            } else {
+                return Error::TradevilleInvalidPrice;
+            }
+        } else {
+            if (priceArray[i].IsNull() == false) {
+                return Error::TradevilleInvalidPrice;
+            }
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityCommission(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto commissionArray = doc.FindMember("Comission")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (commissionArray[i].IsUint64() == true) {
+            activities[i].commission =
+                static_cast<double>(commissionArray[i].GetUint64());
+        } else if (commissionArray[i].IsDouble() == true) {
+            activities[i].commission = commissionArray[i].GetDouble();
+        } else if (commissionArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidCommission;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityCashAmmount(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto ammountArray = doc.FindMember("Ammount")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (ammountArray[i].IsUint64() == true) {
+            activities[i].cash_ammount =
+                static_cast<double>(ammountArray[i].GetUint64());
+        } else if (ammountArray[i].IsDouble() == true) {
+            activities[i].cash_ammount = ammountArray[i].GetDouble();
+        } else {
+            return Error::TradevilleInvalidCashAmmount;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityCashPosition(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto cashArray = doc.FindMember("CashPos")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (cashArray[i].IsUint64() == true) {
+            activities[i].cash_position =
+                static_cast<double>(cashArray[i].GetUint64());
+        } else if (cashArray[i].IsDouble() == true) {
+            activities[i].cash_position = cashArray[i].GetDouble();
+        } else {
+            return Error::TradevilleInvalidCashPosition;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityAssetPosition(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto assetArray = doc.FindMember("InstrPos")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (assetArray[i].IsUint64() == true) {
+            activities[i].asset_position = assetArray[i].GetUint64();
+        } else if (assetArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidAssetPosition;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityProfit(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto profitArray = doc.FindMember("Profit")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (profitArray[i].IsUint64() == true) {
+            activities[i].profit =
+                static_cast<double>(profitArray[i].GetUint64());
+        } else if (profitArray[i].IsDouble() == true) {
+            activities[i].profit = profitArray[i].GetDouble();
+        } else if (profitArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidProfit;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityTransactionId(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto transactionArray = doc.FindMember("TranzNo")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (transactionArray[i].IsString() == false) {
+            return Error::TradevilleInvalidTransactionId;
+        }
+        activities[i].transaction_id = transactionArray[i].GetString();
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityCurrency(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto currencyArray = doc.FindMember("Ccy")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (currencyArray[i].IsString() == false) {
+            return Error::TradevilleInvalidCurrency;
+        }
+
+        std::string currency = currencyArray[i].GetString();
+
+        if (currency == "RON") {
+            activities[i].currency = Currency::Ron;
+        } else if (currency == "USD") {
+            activities[i].currency = Currency::Usd;
+        } else if (currency == "EUR") {
+            activities[i].currency = Currency::Eur;
+        } else {
+            return Error::TradevilleInvalidCurrency;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityNote(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto noteArray = doc.FindMember("Obs")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (noteArray[i].IsNull() == true) {
+            continue;
+        }
+        if (noteArray[i].IsString() == false) {
+            return Error::TradevilleInvalidNote;
+        }
+        activities[i].note = noteArray[i].GetString();
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityAvgPrice(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto avgPriceArray = doc.FindMember("AvgPrice")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (avgPriceArray[i].IsUint64() == true) {
+            activities[i].avg_price =
+                static_cast<double>(avgPriceArray[i].GetUint64());
+        } else if (avgPriceArray[i].IsDouble() == true) {
+            activities[i].avg_price = avgPriceArray[i].GetDouble();
+        } else if (avgPriceArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidAvgPrice;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityOrderId(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto orderIdArray = doc.FindMember("OrderId")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (orderIdArray[i].IsUint64() == true) {
+            activities[i].order_id = orderIdArray[i].GetUint64();
+        } else if (orderIdArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidOrderId;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityTax(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto taxArray = doc.FindMember("Tax")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (taxArray[i].IsUint64() == true) {
+            activities[i].tax = static_cast<double>(taxArray[i].GetUint64());
+        } else if (taxArray[i].IsDouble() == true) {
+            activities[i].tax = taxArray[i].GetDouble();
+        } else if (taxArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidTax;
+        }
+    }
+
+    return Error::NoError;
+}
+
+Error Tradeville::ParseActivityMarket(
+    const rapidjson::Value& doc,
+    Activities& activities)
+{
+    auto marketArray = doc.FindMember("Market")->value.GetArray();
+
+    for (size_t i = 0; i < activities.size(); i++) {
+        if (marketArray[i].IsString() == true) {
+            activities[i].market = marketArray[i].GetString();
+        } else if (marketArray[i].IsNull() == false) {
+            return Error::TradevilleInvalidMarket;
+        }
+    }
+
+    return Error::NoError;
 }
 
 bool Tradeville::VerifyStrField(

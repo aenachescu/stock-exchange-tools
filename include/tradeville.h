@@ -24,6 +24,7 @@
 using AssetValue            = std::map<AssetType, double>;
 using CurrencyValue         = std::map<Currency, double>;
 using AssetAndCurrencyValue = std::map<AssetType, CurrencyValue>;
+using Quantity              = std::variant<uint64_t, double>;
 
 struct Portfolio
 {
@@ -31,11 +32,11 @@ struct Portfolio
     {
         std::string account;
         std::string symbol;
-        std::variant<uint64_t, double> quantity = 0ull;
-        double avg_price                        = 0.0;
-        double market_price                     = 0.0;
-        Currency currency                       = Currency::Unknown;
-        AssetType asset                         = AssetType::Unknown;
+        Quantity quantity   = 0ull;
+        double avg_price    = 0.0;
+        double market_price = 0.0;
+        Currency currency   = Currency::Unknown;
+        AssetType asset     = AssetType::Unknown;
     };
 
     tl::expected<AssetValue, Error> GetValueByAsset(
@@ -53,12 +54,12 @@ struct Activity
     std::string symbol;
     std::string note;
     std::string market;
+    std::string transaction_id;
     ActivityType type       = ActivityType::Unknown;
     Currency currency       = Currency::Unknown;
-    uint64_t transaction_id = 0;
-    uint64_t order_id       = 0;
-    uint64_t quantity       = 0;
+    Quantity quantity       = 0ull;
     uint64_t asset_position = 0;
+    uint64_t order_id       = 0;
     double price            = 0.0;
     double avg_price        = 0.0;
     double commission       = 0.0;
@@ -132,6 +133,55 @@ private:
         uint64_t endYear);
     tl::expected<Activities, Error> ParseActivity(
         const rapidjson::Document& doc);
+    Error ParseActivityDate(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityType(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivitySymbol(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityQuantity(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityPrice(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityCommission(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityCashAmmount(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityCashPosition(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityAssetPosition(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityProfit(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityTransactionId(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityCurrency(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityNote(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityAvgPrice(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityOrderId(
+        const rapidjson::Value& doc,
+        Activities& activities);
+    Error ParseActivityTax(const rapidjson::Value& doc, Activities& activities);
+    Error ParseActivityMarket(
+        const rapidjson::Value& doc,
+        Activities& activities);
 
     bool VerifyStrField(
         const rapidjson::Value& doc,

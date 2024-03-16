@@ -17,6 +17,15 @@ uint64_t GetCurrentYear()
     return static_cast<uint64_t>(year);
 }
 
+std::string quantity_to_string(const Quantity& q)
+{
+    if (std::holds_alternative<uint64_t>(q) == true) {
+        return std::to_string(std::get<uint64_t>(q));
+    }
+
+    return double_to_string(std::get<double>(q));
+};
+
 bool IsValidConfig(const Config& cfg)
 {
     if (cfg.GetBroker().value_or("") != "tradeville") {
@@ -62,13 +71,6 @@ int CmdPrintPortfolio(const Config& cfg)
     Table table;
     size_t id = 1;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
-
-    auto quantity_to_string = [](const std::variant<uint64_t, double>& q) {
-        if (std::holds_alternative<uint64_t>(q) == true) {
-            return std::to_string(std::get<uint64_t>(q));
-        }
-        return double_to_string(std::get<double>(q));
-    };
 
     auto portfolio = tv.GetPortfolio();
     if (! portfolio) {
@@ -167,8 +169,15 @@ int CmdPrintActivity(const Config& cfg)
         "Commission",
         "Tax",
         "Ammount",
+        "Avg price",
         "Currency",
         "Note",
+        "Market",
+        "Transaction id",
+        "Order Id",
+        "Asset pos",
+        "Cash pos",
+        "Profit",
     });
 
     for (const auto& i : *activities) {
@@ -177,13 +186,20 @@ int CmdPrintActivity(const Config& cfg)
             i.date,
             std::string{magic_enum::enum_name(i.type)},
             i.symbol,
-            std::to_string(i.quantity),
+            quantity_to_string(i.quantity),
             double_to_string(i.price, 4),
             double_to_string(i.commission, 4),
             double_to_string(i.tax, 4),
             double_to_string(i.cash_ammount, 4),
+            double_to_string(i.avg_price, 4),
             std::string{magic_enum::enum_name(i.currency)},
             i.note,
+            i.market,
+            i.transaction_id,
+            std::to_string(i.order_id),
+            std::to_string(i.asset_position),
+            double_to_string(i.cash_position, 2),
+            double_to_string(i.profit, 2),
         });
         id++;
     }
