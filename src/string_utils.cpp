@@ -1,5 +1,6 @@
 #include "string_utils.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <locale>
 #include <sstream>
@@ -15,6 +16,22 @@ struct ThousandsSeparator : std::numpunct<char>
     {
         return "\3";
     }
+};
+
+template <typename CharType>
+struct CharCmp
+{
+    CharCmp(const std::locale& loc) : m_locale(loc)
+    {
+    }
+
+    bool operator()(CharType c1, CharType c2)
+    {
+        return std::toupper(c1, m_locale) == std::toupper(c2, m_locale);
+    }
+
+private:
+    const std::locale& m_locale;
 };
 
 std::string double_to_string(double d, size_t precision, bool useSeparators)
@@ -153,6 +170,22 @@ bool is_number(const std::string& str)
         if (! std::isdigit(str[i])) {
             return false;
         }
+    }
+
+    return true;
+}
+
+bool string_contains_ci(const std::string& str1, const std::string& str2)
+{
+    std::string::const_iterator it = std::search(
+        str1.begin(),
+        str1.end(),
+        str2.begin(),
+        str2.end(),
+        CharCmp<std::string::value_type>(std::locale()));
+
+    if (it == str1.end()) {
+        return false;
     }
 
     return true;

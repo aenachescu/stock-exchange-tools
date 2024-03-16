@@ -25,4 +25,6 @@ bool parse_mdy_date(
 
 bool is_number(const std::string& str);
 
+bool string_contains_ci(const std::string& str1, const std::string& str2);
+
 #endif // STOCK_EXCHANGE_TOOLS_STRING_UTILS_H
