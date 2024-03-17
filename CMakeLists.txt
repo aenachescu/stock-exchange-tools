@@ -33,6 +33,9 @@ add_executable(index_investing_tool
     src/cli_utils.cpp
     src/websocket_connection.cpp
     src/tradeville.cpp
+    src/bvb_scraper.cpp
+    src/html_parser.cpp
+    src/curl_utils.cpp
 )
 target_include_directories(index_investing_tool PUBLIC
     include
@@ -40,7 +43,9 @@ target_include_directories(index_investing_tool PUBLIC
     magic_enum/include)
 set_target_properties(index_investing_tool PROPERTIES COMPILE_FLAGS
     "-std=c++20 -Wall -Werror")
-target_link_libraries(index_investing_tool ${OPENSSL_LIBRARIES})
+target_link_libraries(index_investing_tool
+    ${OPENSSL_LIBRARIES}
+    ${CURL_LIBRARIES})
 
 add_executable(set_unit_tests
     test/html_parser_test.cpp

@@ -5,6 +5,7 @@
 #include "noncopyable.h"
 #include "nonmovable.h"
 #include "stock_index.h"
+#include "tradeville.h"
 
 #include <map>
 #include <string>
@@ -24,6 +25,8 @@ public:
         double delta_value = 0.0;
     };
 
+    using Entries = std::vector<Entry>;
+
 private:
     struct EntryCmp
     {
@@ -40,14 +43,19 @@ public:
     IndexReplication()  = default;
     ~IndexReplication() = default;
 
-    Error AddEntry(
-        const CompanySymbol& symbol,
-        double weight,
-        double cost,
-        double commission,
-        double value);
+    tl::expected<Entries, Error> CalculateReplication(uint64_t cashAmmount);
 
-    std::vector<Entry> GetEntries(uint64_t cashAmmount);
+    tl::expected<Entries, Error> CalculateReplication(
+        const Index& index,
+        const Portfolio& portfolio,
+        const Activities& activities,
+        uint64_t cashAmmount);
+
+private:
+    Error FillEntries(const Index& index);
+    Error CalculateCostAndValue(
+        const Portfolio& portfolio,
+        const Activities& activities);
 
 private:
     std::map<CompanySymbol, Entry> m_entries;

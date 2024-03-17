@@ -1,5 +1,7 @@
+#include "bvb_scraper.h"
 #include "cli_utils.h"
 #include "config.h"
+#include "index_replication.h"
 #include "string_utils.h"
 #include "tradeville.h"
 
@@ -261,6 +263,137 @@ int CmdPrintDividends(const Config& cfg, uint64_t startYear, uint64_t endYear)
     return 0;
 }
 
+tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
+    const Config& cfg,
+    uint64_t ammount)
+{
+    IndexReplication ir;
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+    BvbScraper bvb;
+    const Index* index = nullptr;
+    uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
+    uint64_t endYear   = GetCurrentYear();
+
+    auto indexes = bvb.LoadAdjustmentsHistoryFromFile(*cfg.GetIndexName());
+    if (! indexes) {
+        std::cout << "Failed to load adjustments history: "
+                  << magic_enum::enum_name(indexes.error()) << std::endl;
+        return tl::unexpected(indexes.error());
+    }
+
+    for (const auto& i : *indexes) {
+        if (i.date == *cfg.GetIndexAdjustmentDate() &&
+            i.reason == *cfg.GetIndexAdjustmentReason()) {
+            index = &i;
+            break;
+        }
+    }
+
+    if (index == nullptr) {
+        std::cout << "No index adjustments found with specific date and reason"
+                  << std::endl;
+        return tl::unexpected(Error::InvalidArg);
+    }
+
+    auto portfolio = tv.GetPortfolio();
+    if (! portfolio) {
+        std::cout << "Failed to get portfolio: "
+                  << magic_enum::enum_name(portfolio.error()) << std::endl;
+        return tl::unexpected(portfolio.error());
+    }
+
+    auto activities = tv.GetActivity(std::nullopt, startYear, endYear);
+    if (! activities) {
+        std::cout << "Failed to get activity: "
+                  << magic_enum::enum_name(activities.error()) << std::endl;
+        return tl::unexpected(activities.error());
+    }
+
+    auto replication =
+        ir.CalculateReplication(*index, *portfolio, *activities, ammount);
+    if (! replication) {
+        std::cout << "Failed to calculate index replication: "
+                  << magic_enum::enum_name(replication.error()) << std::endl;
+        return tl::unexpected(replication.error());
+    }
+
+    return replication;
+}
+
+int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
+{
+    Table table;
+    size_t id            = 1;
+    double sumWeight     = 0.0;
+    double sumTargetCost = 0.0;
+    double sumActualCost = 0.0;
+    double sumValue      = 0.0;
+    double sumCommission = 0.0;
+    double sumDeltaCost  = 0.0;
+    double sumDeltaValue = 0.0;
+
+    auto replication = GetIndexReplication(cfg, ammount);
+    if (! replication) {
+        return -1;
+    }
+
+    table.reserve(replication->size() + 1);
+    table.emplace_back(std::vector<std::string>{
+        "#",
+        "Symbol",
+        "Weight",
+        "Target cost",
+        "Actual cost",
+        "Value",
+        "Commission",
+        "Delta cost",
+        "Delta value",
+    });
+
+    for (const auto& i : *replication) {
+        sumWeight += i.weight;
+        sumTargetCost += i.target_cost;
+        sumActualCost += i.actual_cost;
+        sumValue += i.value;
+        sumCommission += i.commission;
+        if (i.delta_cost < 0.0) {
+            sumDeltaCost += i.delta_cost;
+        }
+        if (i.delta_value < 0.0) {
+            sumDeltaValue += i.delta_value;
+        }
+
+        table.emplace_back(std::vector<std::string>{
+            std::to_string(id),
+            i.symbol,
+            double_to_string(i.weight * 100.0),
+            double_to_string(i.target_cost),
+            double_to_string(i.actual_cost),
+            double_to_string(i.value),
+            double_to_string(i.commission),
+            double_to_string(i.delta_cost),
+            double_to_string(i.delta_value),
+        });
+        id++;
+    }
+
+    table.emplace_back(std::vector<std::string>{
+        std::string("-"),
+        std::string("sum"),
+        double_to_string(sumWeight * 100.0),
+        double_to_string(sumTargetCost),
+        double_to_string(sumActualCost),
+        double_to_string(sumValue),
+        double_to_string(sumCommission),
+        double_to_string(sumDeltaCost),
+        double_to_string(sumDeltaValue),
+    });
+
+    print_table(table);
+
+    return 0;
+}
+
 void CmdPrintHelp()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -271,6 +404,9 @@ void CmdPrintHelp()
                  "prints the dividends just for that year. If both are set "
                  "then it prints dividends for each year from interval. If no "
                  "one is set then it prints dividends for current year."
+              << std::endl;
+    std::cout << "--ptvir <cash_ammount> - prints the status of index "
+                 "replication based on index adjustment from config file."
               << std::endl;
 }
 
@@ -309,6 +445,13 @@ int main(int argc, char* argv[])
         }
 
         return CmdPrintDividends(cfg, startYear, endYear);
+    } else if (strcmp(argv[1], "--ptvir") == 0) {
+        uint64_t ammount = 0;
+        if (argc > 2) {
+            ammount = std::stoull(argv[2]);
+        }
+
+        return CmdPrintIndexReplication(cfg, ammount);
     } else if (strcmp(argv[1], "--help") == 0) {
         CmdPrintHelp();
         return 0;
