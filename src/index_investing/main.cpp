@@ -322,7 +322,7 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
 
 int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
 {
-    Table table;
+    ColorizedTable table;
     size_t id            = 1;
     double sumWeight     = 0.0;
     double sumTargetCost = 0.0;
@@ -338,7 +338,7 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
     }
 
     table.reserve(replication->size() + 1);
-    table.emplace_back(std::vector<std::string>{
+    table.emplace_back(std::vector<ColorizedString>{
         "#",
         "Symbol",
         "Weight",
@@ -351,6 +351,9 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
     });
 
     for (const auto& i : *replication) {
+        Color deltaCostColor  = Color::Green;
+        Color deltaValueColor = Color::Green;
+
         sumWeight += i.weight;
         sumTargetCost += i.target_cost;
         sumActualCost += i.actual_cost;
@@ -358,12 +361,14 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
         sumCommission += i.commission;
         if (i.delta_cost < 0.0) {
             sumDeltaCost += i.delta_cost;
+            deltaCostColor = Color::Red;
         }
         if (i.delta_value < 0.0) {
             sumDeltaValue += i.delta_value;
+            deltaValueColor = Color::Red;
         }
 
-        table.emplace_back(std::vector<std::string>{
+        table.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.symbol,
             double_to_string(i.weight * 100.0),
@@ -371,15 +376,15 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
             double_to_string(i.actual_cost),
             double_to_string(i.value),
             double_to_string(i.commission),
-            double_to_string(i.delta_cost),
-            double_to_string(i.delta_value),
+            ColorizedString{double_to_string(i.delta_cost), deltaCostColor},
+            ColorizedString{double_to_string(i.delta_value), deltaValueColor},
         });
         id++;
     }
 
-    table.emplace_back(std::vector<std::string>{
-        std::string("-"),
-        std::string("sum"),
+    table.emplace_back(std::vector<ColorizedString>{
+        "-",
+        "sum",
         double_to_string(sumWeight * 100.0),
         double_to_string(sumTargetCost),
         double_to_string(sumActualCost),
