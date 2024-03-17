@@ -3,10 +3,10 @@
 This project is a collection of tools that can be used for stock investing.
 
 ### Tools
-- **bvb_scraper_tool** - it's a tool that can used for parsing date from BVB website.
+- **bvb_scraper_tool** - it's a tool that can be used for parsing data from BVB website.
   For more details run `./bvb_scraper_tool --help` in project root directory after
   you have built the project.
-- **index_investing_tool** - it's a tool that can used for index replication investments.
+- **index_investing_tool** - it's a tool that can be used for index replication investments.
   For more details run `./index_investing_tool --help` in project root directory after
   you have built the project.
 
