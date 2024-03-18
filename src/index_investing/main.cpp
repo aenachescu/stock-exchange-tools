@@ -3,6 +3,7 @@
 #include "config.h"
 #include "index_replication.h"
 #include "string_utils.h"
+#include "terminal_ui.h"
 #include "tradeville.h"
 
 #include <chrono>
@@ -457,6 +458,19 @@ int main(int argc, char* argv[])
         }
 
         return CmdPrintIndexReplication(cfg, ammount);
+    } else if (strcmp(argv[1], "--ui") == 0) {
+        TerminalUi tui;
+
+        Error err = tui.Init();
+        if (err != Error::NoError) {
+            std::cout << "Failed to init TerminalUI: "
+                      << magic_enum::enum_name(err) << std::endl;
+            return -1;
+        }
+
+        tui.Run();
+
+        return 0;
     } else if (strcmp(argv[1], "--help") == 0) {
         CmdPrintHelp();
         return 0;

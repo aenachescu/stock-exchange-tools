@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/include/**",
                 "${workspaceFolder}/expected/include/tl/",
-                "${workspaceFolder}/magic_enum/include/"
+                "${workspaceFolder}/magic_enum/include/",
+                "${workspaceFolder}/_deps/ftxui-src/include/",
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

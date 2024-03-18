@@ -33,8 +33,11 @@
 
 CMakeFiles
 CMakeCache.txt
+CPackConfig.cmake
+CPackSourceConfig.cmake
 cmake_install.cmake
 Makefile
+_deps
 
 bvb_scraper_tool
 set_unit_tests
