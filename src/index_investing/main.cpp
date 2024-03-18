@@ -1,4 +1,5 @@
 #include "bvb_scraper.h"
+#include "chrono_utils.h"
 #include "cli_utils.h"
 #include "config.h"
 #include "index_replication.h"
@@ -9,16 +10,6 @@
 #include <chrono>
 #include <iostream>
 #include <magic_enum.hpp>
-
-uint64_t GetCurrentYear()
-{
-    using namespace std::chrono;
-
-    int year = static_cast<int>(
-        year_month_day{time_point_cast<days>(system_clock::now())}.year());
-
-    return static_cast<uint64_t>(year);
-}
 
 std::string quantity_to_string(const Quantity& q)
 {
@@ -152,7 +143,7 @@ int CmdPrintActivity(const Config& cfg)
     size_t id = 1;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
     uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
-    uint64_t endYear   = GetCurrentYear();
+    uint64_t endYear   = get_current_year();
 
     auto activities = tv.GetActivity(std::nullopt, startYear, endYear);
     if (! activities) {
@@ -273,7 +264,7 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
     BvbScraper bvb;
     const Index* index = nullptr;
     uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
-    uint64_t endYear   = GetCurrentYear();
+    uint64_t endYear   = get_current_year();
 
     auto indexes = bvb.LoadAdjustmentsHistoryFromFile(*cfg.GetIndexName());
     if (! indexes) {
@@ -442,7 +433,7 @@ int main(int argc, char* argv[])
     } else if (strcmp(argv[1], "--ptvd") == 0) {
         uint64_t startYear, endYear;
         if (argc == 2) {
-            startYear = endYear = GetCurrentYear();
+            startYear = endYear = get_current_year();
         } else if (argc == 3) {
             startYear = endYear = std::stoull(argv[2]);
         } else {
@@ -459,7 +450,7 @@ int main(int argc, char* argv[])
 
         return CmdPrintIndexReplication(cfg, ammount);
     } else if (strcmp(argv[1], "--ui") == 0) {
-        TerminalUi tui;
+        TerminalUi tui(cfg);
 
         Error err = tui.Init();
         if (err != Error::NoError) {

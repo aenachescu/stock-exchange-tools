@@ -1,11 +1,19 @@
 #include "terminal_ui.h"
 
+#include "chrono_utils.h"
+
+#include <magic_enum.hpp>
+
+// ftxui
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
 
-TerminalUi::TerminalUi()
-    : m_tabNames{"Index replication", "Portfolio", "Activity", "Dividends"},
+TerminalUi::TerminalUi(const Config& cfg)
+    : m_config(cfg), m_index(tl::unexpected(Error::InvalidData)),
+      m_activities(tl::unexpected(Error::InvalidData)),
+      m_portfolio(tl::unexpected(Error::InvalidData)),
+      m_tabNames{"Index replication", "Portfolio", "Activity", "Dividends"},
       m_screen(ftxui::ScreenInteractive::Fullscreen())
 {
 }
@@ -14,6 +22,14 @@ Error TerminalUi::Init()
 {
     std::function<ftxui::Element()> renderCbk;
     std::function<bool(ftxui::Event)> eventCbk;
+
+    LoadIndex();
+    GetDataFromTradeville();
+
+    GenerateIndexReplicationTabContent();
+    GeneratePortfolioTabContent();
+    GenerateActivityTabContent();
+    GenerateDividendsTabContent();
 
     // tab renderers
     renderCbk = std::bind(&TerminalUi::RenderIndexReplicationTab, this);
@@ -59,22 +75,22 @@ void TerminalUi::Run()
 
 ftxui::Element TerminalUi::RenderIndexReplicationTab()
 {
-    return ftxui::text("index replication tab") | ftxui::center;
+    return m_indexReplicationTabContent;
 }
 
 ftxui::Element TerminalUi::RenderPortfolioTab()
 {
-    return ftxui::text("portfolio tab") | ftxui::center;
+    return m_portfolioTabContent;
 }
 
 ftxui::Element TerminalUi::RenderActivityTab()
 {
-    return ftxui::text("activity tab") | ftxui::center;
+    return m_activityTabContent;
 }
 
 ftxui::Element TerminalUi::RenderDividendsTab()
 {
-    return ftxui::text("dividends tab") | ftxui::center;
+    return m_dividendsTabContent;
 }
 
 ftxui::Element TerminalUi::RenderScreen()
@@ -95,4 +111,62 @@ bool TerminalUi::HandleEvent(ftxui::Event ev)
     }
 
     return false;
+}
+
+void TerminalUi::LoadIndex()
+{
+    BvbScraper bvb;
+
+    auto indexes = bvb.LoadAdjustmentsHistoryFromFile(*m_config.GetIndexName());
+    if (! indexes) {
+        m_index = tl::unexpected(indexes.error());
+    }
+
+    for (const auto& i : *indexes) {
+        if (i.date == *m_config.GetIndexAdjustmentDate() &&
+            i.reason == *m_config.GetIndexAdjustmentReason()) {
+            m_index = i;
+            return;
+        }
+    }
+
+    m_index = tl::unexpected(Error::InvalidArg);
+}
+
+void TerminalUi::GetDataFromTradeville()
+{
+    Tradeville tv(*m_config.GetTradevilleUser(), *m_config.GetTradevillePass());
+    uint64_t startYear = std::stoull(*m_config.GetTradevilleStartYear());
+    uint64_t endYear   = get_current_year();
+
+    m_portfolio = tv.GetPortfolio();
+    if (! m_portfolio) {
+        return;
+    }
+
+    m_activities = tv.GetActivity(std::nullopt, startYear, endYear);
+    if (! m_activities) {
+        return;
+    }
+}
+
+void TerminalUi::GenerateIndexReplicationTabContent()
+{
+    m_indexReplicationTabContent =
+        ftxui::text("index replication tab") | ftxui::center;
+}
+
+void TerminalUi::GeneratePortfolioTabContent()
+{
+    m_portfolioTabContent = ftxui::text("portfolio tab") | ftxui::center;
+}
+
+void TerminalUi::GenerateActivityTabContent()
+{
+    m_activityTabContent = ftxui::text("activity tab") | ftxui::center;
+}
+
+void TerminalUi::GenerateDividendsTabContent()
+{
+    m_dividendsTabContent = ftxui::text("dvd tab") | ftxui::center;
 }

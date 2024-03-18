@@ -56,6 +56,7 @@ add_executable(index_investing_tool
     src/bvb_scraper.cpp
     src/html_parser.cpp
     src/curl_utils.cpp
+    src/chrono_utils.cpp
 )
 target_include_directories(index_investing_tool PUBLIC
     include
