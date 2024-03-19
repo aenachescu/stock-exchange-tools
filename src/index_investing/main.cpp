@@ -11,15 +11,6 @@
 #include <iostream>
 #include <magic_enum.hpp>
 
-std::string quantity_to_string(const Quantity& q)
-{
-    if (std::holds_alternative<uint64_t>(q) == true) {
-        return std::to_string(std::get<uint64_t>(q));
-    }
-
-    return double_to_string(std::get<double>(q));
-};
-
 bool IsValidConfig(const Config& cfg)
 {
     if (cfg.GetBroker().value_or("") != "tradeville") {

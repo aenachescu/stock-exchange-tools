@@ -74,6 +74,15 @@ std::string u64_to_string(uint64_t val)
     return res;
 }
 
+std::string quantity_to_string(const Quantity& q)
+{
+    if (std::holds_alternative<uint64_t>(q) == true) {
+        return std::to_string(std::get<uint64_t>(q));
+    }
+
+    return double_to_string(std::get<double>(q));
+};
+
 std::vector<std::string> split_string(const std::string& str, char delim)
 {
     std::vector<std::string> vec;

@@ -2,7 +2,10 @@
 #define STOCK_EXCHANGE_TOOLS_STRING_UTILS_H
 
 #include <string>
+#include <variant>
 #include <vector>
+
+using Quantity = std::variant<uint64_t, double>;
 
 std::string double_to_string(
     double d,
@@ -10,6 +13,8 @@ std::string double_to_string(
     bool useSeparators = false);
 
 std::string u64_to_string(uint64_t val);
+
+std::string quantity_to_string(const Quantity& q);
 
 std::vector<std::string> split_string(const std::string& str, char delim);
 

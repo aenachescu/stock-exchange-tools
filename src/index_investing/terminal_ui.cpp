@@ -1,6 +1,7 @@
 #include "terminal_ui.h"
 
 #include "chrono_utils.h"
+#include "string_utils.h"
 
 #include <magic_enum.hpp>
 
@@ -8,6 +9,7 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/event.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <ftxui/dom/table.hpp>
 
 TerminalUi::TerminalUi(const Config& cfg)
     : m_config(cfg), m_index(tl::unexpected(Error::InvalidData)),
@@ -158,7 +160,71 @@ void TerminalUi::GenerateIndexReplicationTabContent()
 
 void TerminalUi::GeneratePortfolioTabContent()
 {
-    m_portfolioTabContent = ftxui::text("portfolio tab") | ftxui::center;
+    if (! m_portfolio) {
+        std::string errorMsg = "Failed to get portfolio: ";
+        errorMsg += magic_enum::enum_name(m_portfolio.error());
+        m_portfolioTabContent = ftxui::text(errorMsg) | ftxui::center;
+    }
+
+    std::vector<std::vector<std::string>> tableData;
+    size_t id = 1;
+
+    tableData.reserve(m_portfolio->entries.size() + 1);
+    tableData.emplace_back(std::vector<std::string>{
+        "#",
+        "Account",
+        "Symbol",
+        "Quantity",
+        "Avg price",
+        "Market price",
+        "Cost",
+        "Value",
+        "P/L",
+        "P/L %",
+        "Currency",
+        "Asset",
+    });
+
+    for (const auto& i : m_portfolio->entries) {
+        double quantity = 0.0;
+        if (std::holds_alternative<uint64_t>(i.quantity) == true) {
+            quantity = std::get<uint64_t>(i.quantity);
+        } else {
+            quantity = std::get<double>(i.quantity);
+        }
+
+        double cost  = i.avg_price * quantity;
+        double value = i.market_price * quantity;
+        double pl    = value - cost;
+        double plp   = pl / cost * 100.0;
+
+        tableData.emplace_back(std::vector<std::string>{
+            std::to_string(id),
+            i.account,
+            i.symbol,
+            quantity_to_string(i.quantity),
+            double_to_string(i.avg_price, 4),
+            double_to_string(i.market_price, 4),
+            double_to_string(cost),
+            double_to_string(value),
+            double_to_string(pl),
+            double_to_string(plp),
+            std::string{magic_enum::enum_name(i.currency)},
+            std::string{magic_enum::enum_name(i.asset)},
+        });
+        id++;
+    }
+
+    auto table = ftxui::Table(tableData);
+    table.SelectAll().Border(ftxui::BorderStyle::DOUBLE);
+
+    table.SelectRow(0).Decorate(ftxui::bold);
+    table.SelectRow(0).SeparatorVertical(ftxui::BorderStyle::LIGHT);
+    table.SelectRow(0).Border(ftxui::BorderStyle::DOUBLE);
+
+    table.SelectColumns(0, -1).SeparatorVertical(ftxui::BorderStyle::LIGHT);
+
+    m_portfolioTabContent = table.Render();
 }
 
 void TerminalUi::GenerateActivityTabContent()
