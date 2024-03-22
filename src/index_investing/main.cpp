@@ -306,15 +306,17 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
 int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
 {
     ColorizedTable table;
-    size_t id            = 1;
-    double sumWeight     = 0.0;
-    double sumTargetCost = 0.0;
-    double sumActualCost = 0.0;
-    double sumValue      = 0.0;
-    double sumCommission = 0.0;
-    double sumDeltaCost  = 0.0;
-    double sumDeltaValue = 0.0;
-    double sumDividends  = 0.0;
+    size_t id                    = 1;
+    double sumWeight             = 0.0;
+    double sumTargetCost         = 0.0;
+    double sumActualCost         = 0.0;
+    double sumValue              = 0.0;
+    double sumCommission         = 0.0;
+    double sumDeltaCost          = 0.0;
+    double sumDeltaValue         = 0.0;
+    double sumDividends          = 0.0;
+    double sumNegativeDeltaCost  = 0.0;
+    double sumNegativeDeltaValue = 0.0;
 
     auto get_color = [](double val) -> Color {
         return val < 0.0 ? Color::Red : Color::Green;
@@ -349,13 +351,16 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
         sumActualCost += i.actual_cost;
         sumValue += i.value;
         sumCommission += i.commission;
+        sumDeltaCost += i.delta_cost;
+        sumDeltaValue += i.delta_value;
+        sumDividends += i.dividends;
+
         if (i.delta_cost < 0.0) {
-            sumDeltaCost += i.delta_cost;
+            sumNegativeDeltaCost += i.delta_cost;
         }
         if (i.delta_value < 0.0) {
-            sumDeltaValue += i.delta_value;
+            sumNegativeDeltaValue += i.delta_value;
         }
-        sumDividends += i.dividends;
 
         double pl  = i.value - i.actual_cost;
         double plp = pl / i.actual_cost * 100.0;
@@ -391,7 +396,7 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
     double trp = tr / sumActualCost * 100.0;
 
     table.emplace_back(std::vector<ColorizedString>{
-        "-",
+        "",
         "sum",
         double_to_string(sumWeight * 100.0),
         double_to_string(sumTargetCost),
@@ -406,8 +411,24 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
         ColorizedString{double_to_string(tr), get_color(tr)},
         ColorizedString{double_to_string(trp), get_color(trp)},
     });
+    table.emplace_back(std::vector<ColorizedString>{
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        double_to_string(sumNegativeDeltaCost),
+        double_to_string(sumNegativeDeltaValue),
+        "",
+        "",
+        "",
+        "",
+        "",
+    });
 
-    print_table(table);
+    print_table(table, {id});
 
     return 0;
 }
