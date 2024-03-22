@@ -46,6 +46,8 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
         return tl::unexpected(err);
     }
 
+    CalculateDividends(activities);
+
     return CalculateReplication(cashAmmount);
 }
 
@@ -142,4 +144,21 @@ Error IndexReplication::CalculateCostAndValue(
     }
 
     return Error::NoError;
+}
+
+void IndexReplication::CalculateDividends(const Activities& activities)
+{
+    for (const auto& activity : activities) {
+        if (activity.type != ActivityType::Dividend) {
+            continue;
+        }
+
+        auto entryIt = m_entries.find(activity.transaction_id);
+        if (entryIt == m_entries.end()) {
+            continue;
+        }
+
+        entryIt->second.dividends +=
+            (activity.cash_ammount - activity.commission);
+    }
 }

@@ -23,6 +23,7 @@ public:
         double commission  = 0.0;
         double delta_cost  = 0.0;
         double delta_value = 0.0;
+        double dividends   = 0.0;
     };
 
     using Entries = std::vector<Entry>;
@@ -56,6 +57,7 @@ private:
     Error CalculateCostAndValue(
         const Portfolio& portfolio,
         const Activities& activities);
+    void CalculateDividends(const Activities& activities);
 
 private:
     std::map<CompanySymbol, Entry> m_entries;
