@@ -52,6 +52,10 @@ public:
         const Activities& activities,
         uint64_t cashAmmount);
 
+    tl::expected<uint64_t, Error> GetPortfolioValue(
+        const Index& index,
+        const Portfolio& portfolio);
+
 private:
     Error FillEntries(const Index& index);
     Error CalculateCostAndValue(

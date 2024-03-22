@@ -51,6 +51,35 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
     return CalculateReplication(cashAmmount);
 }
 
+tl::expected<uint64_t, Error> IndexReplication::GetPortfolioValue(
+    const Index& index,
+    const Portfolio& portfolio)
+{
+    double value = 0.0;
+
+    for (const auto& company : index.companies) {
+        for (const auto& entry : portfolio.entries) {
+            if (company.symbol != entry.symbol) {
+                continue;
+            }
+
+            if (std::holds_alternative<uint64_t>(entry.quantity) == false) {
+                return tl::unexpected(Error::InvalidData);
+            }
+
+            value += entry.market_price * std::get<uint64_t>(entry.quantity);
+
+            break;
+        }
+    }
+
+    if (std::floor(value) == value) {
+        return static_cast<uint64_t>(value);
+    }
+
+    return static_cast<uint64_t>(value) + 1;
+}
+
 Error IndexReplication::FillEntries(const Index& index)
 {
     m_entries.clear();

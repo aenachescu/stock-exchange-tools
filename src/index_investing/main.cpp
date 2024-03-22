@@ -248,7 +248,8 @@ int CmdPrintDividends(const Config& cfg, uint64_t startYear, uint64_t endYear)
 
 tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
     const Config& cfg,
-    uint64_t ammount)
+    uint64_t ammount,
+    bool addPortfolioValue)
 {
     IndexReplication ir;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
@@ -292,6 +293,18 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
         return tl::unexpected(activities.error());
     }
 
+    if (addPortfolioValue == true) {
+        auto portfolioValue = ir.GetPortfolioValue(*index, *portfolio);
+        if (! portfolioValue) {
+            std::cout << "Failed to get portfolio value: "
+                      << magic_enum::enum_name(portfolioValue.error())
+                      << std::endl;
+            return tl::unexpected(portfolioValue.error());
+        }
+
+        ammount += *portfolioValue;
+    }
+
     auto replication =
         ir.CalculateReplication(*index, *portfolio, *activities, ammount);
     if (! replication) {
@@ -303,7 +316,10 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
     return replication;
 }
 
-int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
+int CmdPrintIndexReplication(
+    const Config& cfg,
+    uint64_t ammount,
+    bool addPortfolioValue)
 {
     ColorizedTable table;
     size_t id                    = 1;
@@ -322,7 +338,7 @@ int CmdPrintIndexReplication(const Config& cfg, uint64_t ammount)
         return val < 0.0 ? Color::Red : Color::Green;
     };
 
-    auto replication = GetIndexReplication(cfg, ammount);
+    auto replication = GetIndexReplication(cfg, ammount, addPortfolioValue);
     if (! replication) {
         return -1;
     }
@@ -446,6 +462,11 @@ void CmdPrintHelp()
               << std::endl;
     std::cout << "--ptvir <cash_ammount> - prints the status of index "
                  "replication based on index adjustment from config file."
+                 "If cash_ammount argument is missing then the current value "
+                 "of stocks will be used. If the cash_ammount argument starts "
+                 "with '+' then that ammount will be added to current value of "
+                 "stocks, this method can be used if you want to invest some "
+                 "money and you want to replicate a specific index."
               << std::endl;
 }
 
@@ -485,12 +506,21 @@ int main(int argc, char* argv[])
 
         return CmdPrintDividends(cfg, startYear, endYear);
     } else if (strcmp(argv[1], "--ptvir") == 0) {
-        uint64_t ammount = 0;
-        if (argc > 2) {
-            ammount = std::stoull(argv[2]);
+        uint64_t ammount       = 0;
+        bool addPortfolioValue = false;
+
+        if (argc == 2) {
+            addPortfolioValue = true;
+        } else if (argc > 2) {
+            if (argv[2][0] == '+') {
+                ammount           = std::stoull(argv[2] + 1);
+                addPortfolioValue = true;
+            } else {
+                ammount = std::stoull(argv[2]);
+            }
         }
 
-        return CmdPrintIndexReplication(cfg, ammount);
+        return CmdPrintIndexReplication(cfg, ammount, addPortfolioValue);
     } else if (strcmp(argv[1], "--ui") == 0) {
         TerminalUi tui(cfg);
 
