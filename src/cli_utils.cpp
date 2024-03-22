@@ -20,11 +20,12 @@ const char* get_color_str(Color color)
     return "";
 }
 
-void print_table(const Table& table)
+void print_table(const Table& table, const std::set<size_t>& separatorPositions)
 {
     std::vector<size_t> maxSizes(table[0].size(), 0);
     std::string lineSeparator = "+";
     bool header               = true;
+    size_t linePos            = 0;
 
     for (size_t col = 0; col < table[0].size(); col++) {
         for (size_t line = 0; line < table.size(); line++) {
@@ -40,6 +41,10 @@ void print_table(const Table& table)
 
     std::cout << lineSeparator << std::endl;
     for (const auto& line : table) {
+        if (separatorPositions.find(linePos) != separatorPositions.end()) {
+            std::cout << lineSeparator << std::endl;
+        }
+
         for (size_t col = 0; col < line.size(); col++) {
             std::cout << "| " << std::left << std::setw(maxSizes[col])
                       << line[col] << ' ';
@@ -50,15 +55,20 @@ void print_table(const Table& table)
             std::cout << lineSeparator << std::endl;
             header = false;
         }
+
+        linePos++;
     }
     std::cout << lineSeparator << std::endl;
 }
 
-void print_table(const ColorizedTable& table)
+void print_table(
+    const ColorizedTable& table,
+    const std::set<size_t>& separatorPositions)
 {
     std::vector<size_t> maxSizes(table[0].size(), 0);
     std::string lineSeparator = "+";
     bool header               = true;
+    size_t linePos            = 0;
 
     for (size_t col = 0; col < table[0].size(); col++) {
         for (size_t line = 0; line < table.size(); line++) {
@@ -74,6 +84,10 @@ void print_table(const ColorizedTable& table)
 
     std::cout << lineSeparator << std::endl;
     for (const auto& line : table) {
+        if (separatorPositions.find(linePos) != separatorPositions.end()) {
+            std::cout << lineSeparator << std::endl;
+        }
+
         for (size_t col = 0; col < line.size(); col++) {
             std::cout << "| " << get_color_str(line[col].color) << std::left
                       << std::setw(maxSizes[col]) << line[col].str
@@ -85,6 +99,8 @@ void print_table(const ColorizedTable& table)
             std::cout << lineSeparator << std::endl;
             header = false;
         }
+
+        linePos++;
     }
     std::cout << lineSeparator << std::endl;
 }

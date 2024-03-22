@@ -1,6 +1,7 @@
 #ifndef STOCK_EXCHANGE_TOOLS_CLI_UTILS_H
 #define STOCK_EXCHANGE_TOOLS_CLI_UTILS_H
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -48,8 +49,12 @@ struct ColorizedString
 using Table          = std::vector<std::vector<std::string>>;
 using ColorizedTable = std::vector<std::vector<ColorizedString>>;
 
-void print_table(const Table& table);
+void print_table(
+    const Table& table,
+    const std::set<size_t>& separatorPositions = {});
 
-void print_table(const ColorizedTable& table);
+void print_table(
+    const ColorizedTable& table,
+    const std::set<size_t>& separatorPositions = {});
 
 #endif // STOCK_EXCHANGE_TOOLS_CLI_UTILS_H
