@@ -333,6 +333,7 @@ int CmdPrintIndexReplication(
     double sumDividends          = 0.0;
     double sumNegativeDeltaCost  = 0.0;
     double sumNegativeDeltaValue = 0.0;
+    double sumAllDeltaValues     = 0.0;
 
     auto get_color = [](double val) -> Color {
         return val < 0.0 ? Color::Red : Color::Green;
@@ -354,6 +355,7 @@ int CmdPrintIndexReplication(
         "Commission",
         "Delta cost",
         "Delta value",
+        "Delta value %",
         "Dvd",
         "P/L",
         "P/L %",
@@ -370,6 +372,7 @@ int CmdPrintIndexReplication(
         sumDeltaCost += i.delta_cost;
         sumDeltaValue += i.delta_value;
         sumDividends += i.dividends;
+        sumAllDeltaValues += std::abs(i.delta_value);
 
         if (i.delta_cost < 0.0) {
             sumNegativeDeltaCost += i.delta_cost;
@@ -382,6 +385,7 @@ int CmdPrintIndexReplication(
         double plp = pl / i.actual_cost * 100.0;
         double tr  = i.value + i.dividends - i.actual_cost;
         double trp = tr / i.actual_cost * 100.0;
+        double dvp = i.delta_value / i.target_cost * 100.0;
 
         table.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
@@ -397,6 +401,7 @@ int CmdPrintIndexReplication(
             ColorizedString{
                 double_to_string(i.delta_value),
                 get_color(i.delta_value)},
+            ColorizedString{double_to_string(dvp), get_color(dvp)},
             double_to_string(i.dividends),
             ColorizedString{double_to_string(pl), get_color(pl)},
             ColorizedString{double_to_string(plp), get_color(plp)},
@@ -410,6 +415,7 @@ int CmdPrintIndexReplication(
     double plp = pl / sumActualCost * 100.0;
     double tr  = sumValue + sumDividends - sumActualCost;
     double trp = tr / sumActualCost * 100.0;
+    double dvp = sumAllDeltaValues / sumTargetCost * 100.0;
 
     table.emplace_back(std::vector<ColorizedString>{
         "",
@@ -421,6 +427,7 @@ int CmdPrintIndexReplication(
         double_to_string(sumCommission),
         double_to_string(sumDeltaCost),
         double_to_string(sumDeltaValue),
+        double_to_string(dvp),
         double_to_string(sumDividends),
         ColorizedString{double_to_string(pl), get_color(pl)},
         ColorizedString{double_to_string(plp), get_color(plp)},
@@ -437,6 +444,7 @@ int CmdPrintIndexReplication(
         "",
         double_to_string(sumNegativeDeltaCost),
         double_to_string(sumNegativeDeltaValue),
+        "",
         "",
         "",
         "",
