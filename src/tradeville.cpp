@@ -891,6 +891,9 @@ Error Tradeville::ParseActivityCashAmmount(
         if (ammountArray[i].IsUint64() == true) {
             activities[i].cash_ammount =
                 static_cast<double>(ammountArray[i].GetUint64());
+        } else if (ammountArray[i].IsInt64() == true) {
+            activities[i].cash_ammount =
+                static_cast<double>(ammountArray[i].GetInt64());
         } else if (ammountArray[i].IsDouble() == true) {
             activities[i].cash_ammount = ammountArray[i].GetDouble();
         } else {
