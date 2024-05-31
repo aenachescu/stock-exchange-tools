@@ -758,7 +758,8 @@ Error Tradeville::ParseActivityType(
         } else if (std::string_view{"X"} == typeArray[i].GetString()) {
             activities[i].type = ActivityType::Tax;
         } else if (std::string_view{"In"} == typeArray[i].GetString()) {
-            if (string_contains_ci(activities[i].note, "dividend")) {
+            if (string_contains_ci(activities[i].note, "dividend") ||
+                string_contains_ci(activities[i].note, "plata cupon")) {
                 activities[i].type = ActivityType::Dividend;
                 continue;
             }
