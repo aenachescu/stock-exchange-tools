@@ -128,7 +128,7 @@ int CmdPrintPortfolio(const Config& cfg)
     return 0;
 }
 
-int CmdPrintActivity(const Config& cfg)
+int CmdPrintActivity(const Config& cfg, const ActivityFilters& filters)
 {
     Table table;
     size_t id = 1;
@@ -166,6 +166,10 @@ int CmdPrintActivity(const Config& cfg)
     });
 
     for (const auto& i : *activities) {
+        if (filters.Match(i) == false) {
+            continue;
+        }
+
         table.emplace_back(std::vector<std::string>{
             std::to_string(id),
             i.date,
@@ -478,6 +482,83 @@ void CmdPrintHelp()
               << std::endl;
 }
 
+bool ParseActivityFilters(
+    char* argv[],
+    int argc,
+    int start,
+    ActivityFilters& filters)
+{
+    for (int i = start; i < argc; i++) {
+        if (strcmp(argv[i], "--year") == 0) {
+            if (i + 1 >= argc) {
+                std::cout << "no year provided" << std::endl;
+                return false;
+            }
+
+            uint64_t year = std::stoull(argv[i + 1]);
+            filters.AddFilter(std::make_unique<ActivityFilterByYear>(year));
+            i++;
+            continue;
+        }
+
+        if (strcmp(argv[i], "--type") == 0) {
+            if (i + 1 >= argc) {
+                std::cout << "no type provided" << std::endl;
+                return false;
+            }
+
+            auto type = magic_enum::enum_cast<ActivityType>(
+                argv[i + 1],
+                magic_enum::case_insensitive);
+            if (type == std::nullopt) {
+                std::cout << "invalid type" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(std::make_unique<ActivityFilterByType>(*type));
+            i++;
+            continue;
+        }
+
+        if (strcmp(argv[i], "--symbol") == 0) {
+            if (i + 1 >= argc) {
+                std::cout << "no symbol provided" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(
+                std::make_unique<ActivityFilterBySymbol>(argv[i + 1]));
+            i++;
+            continue;
+        }
+
+        if (strcmp(argv[i], "--currency") == 0) {
+            if (i + 1 >= argc) {
+                std::cout << "no currency provided" << std::endl;
+                return false;
+            }
+
+            auto currency = magic_enum::enum_cast<Currency>(
+                argv[i + 1],
+                magic_enum::case_insensitive);
+            if (currency == std::nullopt) {
+                std::cout << "invalid currency" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(
+                std::make_unique<ActivityFilterByCurrency>(*currency));
+            i++;
+            continue;
+        }
+
+        std::cout << "invalid filter" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char* argv[])
 {
     Config cfg;
@@ -500,7 +581,12 @@ int main(int argc, char* argv[])
     if (strcmp(argv[1], "--ptvp") == 0) {
         return CmdPrintPortfolio(cfg);
     } else if (strcmp(argv[1], "--ptva") == 0) {
-        return CmdPrintActivity(cfg);
+        ActivityFilters filters;
+        if (ParseActivityFilters(argv, argc, 2, filters) == false) {
+            return -1;
+        }
+
+        return CmdPrintActivity(cfg, filters);
     } else if (strcmp(argv[1], "--ptvd") == 0) {
         uint64_t startYear, endYear;
         if (argc == 2) {
