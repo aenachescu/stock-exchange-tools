@@ -972,6 +972,10 @@ Error Tradeville::ParseActivityTransactionId(
             return Error::TradevilleInvalidTransactionId;
         }
         activities[i].transaction_id = transactionArray[i].GetString();
+
+        if (activities[i].type == ActivityType::Dividend) {
+            activities[i].symbol = activities[i].transaction_id;
+        }
     }
 
     return Error::NoError;
