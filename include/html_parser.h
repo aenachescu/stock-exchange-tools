@@ -34,6 +34,7 @@ enum class HtmlTag
     Input,
     A,
     Div,
+    Strong,
 };
 
 enum class HtmlAttribute
