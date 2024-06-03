@@ -83,6 +83,32 @@ std::string quantity_to_string(const Quantity& q)
     return double_to_string(std::get<double>(q));
 };
 
+std::string date_to_string(
+    const std::chrono::year_month_day& date,
+    char separator)
+{
+    std::string res;
+    unsigned int day   = static_cast<unsigned int>(date.day());
+    unsigned int month = static_cast<unsigned int>(date.month());
+    int year           = static_cast<int>(date.year());
+
+    if (month < 10) {
+        res += '0';
+    }
+    res += std::to_string(month);
+    res += separator;
+
+    if (day < 10) {
+        res += '0';
+    }
+    res += std::to_string(day);
+    res += separator;
+
+    res += std::to_string(year);
+
+    return res;
+}
+
 std::vector<std::string> split_string(const std::string& str, char delim)
 {
     std::vector<std::string> vec;

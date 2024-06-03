@@ -1,6 +1,7 @@
 #ifndef STOCK_EXCHANGE_TOOLS_STRING_UTILS_H
 #define STOCK_EXCHANGE_TOOLS_STRING_UTILS_H
 
+#include <chrono>
 #include <string>
 #include <variant>
 #include <vector>
@@ -15,6 +16,10 @@ std::string double_to_string(
 std::string u64_to_string(uint64_t val);
 
 std::string quantity_to_string(const Quantity& q);
+
+std::string date_to_string(
+    const std::chrono::year_month_day& date,
+    char separator = '/');
 
 std::vector<std::string> split_string(const std::string& str, char delim);
 
