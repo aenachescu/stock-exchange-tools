@@ -9,6 +9,57 @@
 #include <set>
 #include <sstream>
 
+int cmd_print_dividends()
+{
+    BvbScraper bvbScraper;
+    Table table;
+    size_t id = 1;
+
+    auto r = bvbScraper.GetDividendActivities();
+    if (! r) {
+        std::cout << "failed to get dividend activity: "
+                  << magic_enum::enum_name(r.error()) << std::endl;
+        return -1;
+    }
+
+    std::sort(r->begin(), r->end(), [](DividendActivity a, DividendActivity b) {
+        return a.payment_date > b.payment_date;
+    });
+
+    table.reserve(r->size() + 1);
+    table.emplace_back(std::vector<std::string>{
+        "#",
+        "Symbol",
+        "Name",
+        "Dvd",
+        "Total dvd",
+        "Dvd yield (%)",
+        "Year",
+        "Ex-dvd date",
+        "Record date",
+        "Payment date"});
+
+    for (const auto& i : *r) {
+        table.emplace_back(std::vector<std::string>{
+            std::to_string(id),
+            i.symbol,
+            i.name,
+            double_to_string(i.dvd_value, 6),
+            double_to_string(i.dvd_total_value, 2),
+            double_to_string(i.dvd_yield, 2),
+            std::to_string(i.year),
+            date_to_string(i.ex_dvd_date),
+            date_to_string(i.record_date),
+            date_to_string(i.payment_date),
+        });
+        id++;
+    }
+
+    print_table(table);
+
+    return 0;
+}
+
 int cmd_print_indexes()
 {
     BvbScraper bvbScraper;
@@ -494,6 +545,7 @@ int cmd_update_adjustments_history(const IndexName& indexName)
 void cmd_print_help()
 {
     std::cout << "Supported commands:" << std::endl;
+    std::cout << "--pd - prints dividend activity from BVB" << std::endl;
     std::cout << "--pi - prints names of BVB indices" << std::endl;
     std::cout << "--pip - prints performance of BVB indices" << std::endl;
     std::cout << "--pic <index_name> - prints constituents of a BVB index. Use "
@@ -531,7 +583,9 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    if (strcmp(argv[1], "--pi") == 0) {
+    if (strcmp(argv[1], "--pd") == 0) {
+        return cmd_print_dividends();
+    } else if (strcmp(argv[1], "--pi") == 0) {
         return cmd_print_indexes();
     } else if (strcmp(argv[1], "--pip") == 0) {
         return cmd_print_indexes_performance();

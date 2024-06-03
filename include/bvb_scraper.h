@@ -58,6 +58,7 @@ public:
     BvbScraper()  = default;
     ~BvbScraper() = default;
 
+    tl::expected<DividendActivities, Error> GetDividendActivities();
     tl::expected<IndexesNames, Error> GetIndexesNames();
     tl::expected<IndexesPerformance, Error> GetIndexesPerformance();
     tl::expected<Index, Error> GetConstituents(const IndexName& name);
@@ -81,7 +82,8 @@ private:
         bool allowNegative,
         bool hasSeparators,
         bool allowNbsp);
-    bool IsValidNumber(const std::string val);
+    bool IsValidNumber(const std::string& val);
+    bool IsValidDate(const std::string& val);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,
@@ -90,6 +92,7 @@ private:
         HttpVersion version      = HttpVersion::http1_1,
         const PostData& postData = {});
 
+    tl::expected<HttpResponse, Error> GetInfoDividendPage();
     tl::expected<HttpResponse, Error> GetIndicesProfilesPage();
     tl::expected<HttpResponse, Error> SelectIndex(
         const IndexName& name,
@@ -124,6 +127,8 @@ private:
         std::string_view attrValue,
         AddEntryToTable<Table, Entry> addFunc);
 
+    tl::expected<DividendActivities, Error> ParseDividendActivities(
+        const std::string& data);
     tl::expected<IndexesDetails, Error> ParseIndexesNames(
         const std::string& data);
     tl::expected<IndexesPerformance, Error> ParseIndexesPerformance(

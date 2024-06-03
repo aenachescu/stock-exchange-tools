@@ -28,10 +28,41 @@ uint64_t StringToU64(const std::string& val)
     return res;
 }
 
+uint16_t StringToU16(const std::string& val)
+{
+    return static_cast<uint16_t>(std::stoul(val));
+}
+
 double StringToDouble(std::string val)
 {
     val.erase(std::remove(val.begin(), val.end(), ','), val.end());
     return std::stod(val);
+}
+
+std::chrono::year_month_day StringToDate(const std::string& val)
+{
+    uint8_t month = 0;
+    uint8_t day   = 0;
+    uint16_t year = 0;
+
+    if (parse_mdy_date(val, month, day, year) == false) {
+        return std::chrono::year_month_day{};
+    }
+
+    return std::chrono::year_month_day(
+        std::chrono::year(static_cast<int>(year)),
+        std::chrono::month(month),
+        std::chrono::day(day));
+}
+
+tl::expected<DividendActivities, Error> BvbScraper::GetDividendActivities()
+{
+    auto rsp = GetInfoDividendPage();
+    if (! rsp) {
+        return tl::unexpected(rsp.error());
+    }
+
+    return ParseDividendActivities(rsp->body);
 }
 
 tl::expected<IndexesNames, Error> BvbScraper::GetIndexesNames()
@@ -470,7 +501,7 @@ bool BvbScraper::IsValidDouble(
     return true;
 }
 
-bool BvbScraper::IsValidNumber(const std::string val)
+bool BvbScraper::IsValidNumber(const std::string& val)
 {
     size_t points = 0;
 
@@ -483,6 +514,21 @@ bool BvbScraper::IsValidNumber(const std::string val)
     }
 
     return points < 2;
+}
+
+bool BvbScraper::IsValidDate(const std::string& val)
+{
+    size_t slash = 0;
+
+    for (char c : val) {
+        if (c == '/') {
+            slash++;
+        } else if (! std::isdigit(c)) {
+            return false;
+        }
+    }
+
+    return slash == 2;
 }
 
 tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
@@ -518,6 +564,46 @@ tl::expected<HttpResponse, Error> BvbScraper::SendHttpRequest(
 #undef RETURN_IF_ERROR
 
     return curl.Perform();
+}
+
+tl::expected<HttpResponse, Error> BvbScraper::GetInfoDividendPage()
+{
+    CurlHeaders headers;
+    Error err = Error::NoError;
+
+    err = headers.Add({
+        "Host: bvb.ro",
+        "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 "
+        "Firefox/111.0",
+        "Accept: "
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/"
+        "avif,image/webp,*/*;q=0.8",
+        "Accept-Language: en-US,en;q=0.5",
+        "Cookie: BVBCulturePref=en-US",
+        "Upgrade-Insecure-Requests: 1",
+        "Sec-Fetch-Dest: document",
+        "Sec-Fetch-Mode: navigate",
+        "Sec-Fetch-Site: none",
+        "Sec-Fetch-User: ?1",
+        "Pragma: no-cache",
+        "Cache-Control: no-cache",
+    });
+    if (err != Error::NoError) {
+        return tl::unexpected(err);
+    }
+
+    auto rsp = SendHttpRequest(
+        "https://bvb.ro/FinancialInstruments/CorporateActions/InfoDividend",
+        headers);
+    if (! rsp) {
+        return rsp;
+    }
+
+    if (rsp->code != 200) {
+        return tl::unexpected(Error::UnexpectedResponseCode);
+    }
+
+    return rsp;
 }
 
 tl::expected<HttpResponse, Error> BvbScraper::GetIndicesProfilesPage()
@@ -1023,6 +1109,92 @@ tl::expected<Table, Error> BvbScraper::ParseTable(
     }
 
     return table;
+}
+
+tl::expected<DividendActivities, Error> BvbScraper::ParseDividendActivities(
+    const std::string& data)
+{
+    static constexpr std::string_view kDivId =
+        "ctl00_ctl00_body_rightColumnPlaceHolder_UpdatePanel1";
+    static constexpr std::string_view kTableId = "gv";
+
+    HtmlParser html(data);
+
+    DEF_SETTER(DividendActivity, symbol, NO_FUNC);
+    DEF_SETTER(DividendActivity, name, NO_FUNC);
+    DEF_SETTER(DividendActivity, dvd_value, std::stod);
+    DEF_SETTER(DividendActivity, dvd_yield, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(DividendActivity, ex_dvd_date, StringToDate);
+    DEF_SETTER(DividendActivity, payment_date, StringToDate);
+    DEF_SETTER(DividendActivity, year, StringToU16);
+    DEF_SETTER(DividendActivity, record_date, StringToDate);
+    DEF_SETTER(DividendActivity, dvd_total_value, NBSP_OR_SDOUBLE_FUNC);
+
+    TableValueValidator isValidSymbol = [this](const std::string& val) -> bool {
+        std::string clean_val = val;
+        std::erase_if(clean_val, [](char c) { return std::isspace(c); });
+        return this->IsValidCompanySymbol(clean_val);
+    };
+    TableValueValidator isValidName = [this](const std::string& val) -> bool {
+        return this->IsValidCompanyName(val);
+    };
+    TableValueValidator isValidDvd = [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 6, false, false, false);
+    };
+    TableValueValidator isValidDvdYield =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, false, true);
+    };
+    TableValueValidator isValidDvdTotal =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDouble(val, 2, false, true, true);
+    };
+    TableValueValidator isValidYear = [this](const std::string& val) -> bool {
+        return this->IsValidNumber(val);
+    };
+    TableValueValidator isValidDate = [this](const std::string& val) -> bool {
+        return this->IsValidDate(val);
+    };
+
+    AddEntryToTable<DividendActivities, DividendActivity> addFunc =
+        [](DividendActivities& table, DividendActivity&& entry) -> void {
+        table.push_back(std::move(entry));
+    };
+
+    std::vector<TableColumnDetails<DividendActivity>> columns = {
+        {"Symbol / ISIN", isValidSymbol, symbol, HtmlTag::Strong},
+        {"Company", isValidName, name},
+        {"Dividend", isValidDvd, dvd_value},
+        {"DIVY", isValidDvdYield, dvd_yield},
+        {"Ex-dividend Date", isValidDate, ex_dvd_date},
+        {"Payment date", isValidDate, payment_date},
+        {"Year", isValidYear, year},
+        {"Registration Date", isValidDate, record_date},
+        {"Dividends Total", isValidDvdTotal, dvd_total_value},
+    };
+
+    auto divLocation =
+        html.FindElement(HtmlTag::Div, {}, HtmlAttribute::Id, kDivId);
+    if (! divLocation) {
+        return tl::unexpected(divLocation.error());
+    }
+
+    auto res = ParseTable<DividendActivities, DividendActivity>(
+        columns,
+        data,
+        divLocation->data,
+        HtmlAttribute::Id,
+        kTableId,
+        addFunc);
+    if (! res) {
+        return res;
+    }
+
+    for (auto& activity : *res) {
+        std::erase_if(activity.symbol, [](char c) { return std::isspace(c); });
+    }
+
+    return res;
 }
 
 tl::expected<BvbScraper::IndexesDetails, Error> BvbScraper::ParseIndexesNames(
