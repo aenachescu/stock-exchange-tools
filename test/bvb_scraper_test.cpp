@@ -6,6 +6,12 @@
 
 class BvbScraperTest {
 public:
+    tl::expected<DividendActivities, Error> ParseDividendActivities(
+        const std::string& data)
+    {
+        return m_bvbScraper.ParseDividendActivities(data);
+    }
+
     tl::expected<BvbScraper::IndexesDetails, Error> ParseIndexesNames(
         const std::string& data)
     {
@@ -715,5 +721,66 @@ TEST(BvbScraperTest, ParseAdjustmentsHistory)
                 index.companies[j].weight,
                 expectedIndexes[i].companies[j].weight);
         }
+    }
+}
+
+TEST(BvbScraperTest, ParseDividendActivities)
+{
+    using namespace std::chrono;
+
+    // clang-format off
+    DividendActivities expected_activities = {
+        {"SFG", "Sphera Franchise Group", 1.050000, 40739307.00, 3.03, 2024, {2024y, May, 16d}, {2024y, May, 17d}, {2024y, June, 6d}},
+        {"OIL", "OIL TERMINAL S.A.", 0.003203, 9601748.00, 2.64, 2023, {2024y, May, 20d}, {2024y, May, 21d}, {2024y, June, 10d}},
+        {"AQ", "AQUILA PART PROD COM", 0.070840, 85008170.02, 6.16, 2023, {2024y, May, 20d}, {2024y, May, 21d}, {2024y, June, 6d}},
+        {"EVER", "EVERGENT INVESTMENTS S.A.", 0.090000, 81694796.85, 6.46, 2023, {2024y, May, 21d}, {2024y, May, 22d}, {2024y, June, 12d}},
+        {"CMP", "COMPA S. A.", 0.007050, 1535078.00, 1.07, 2023, {2024y, May, 23d}, {2024y, May, 24d}, {2024y, June, 14d}},
+        {"COTE", "CONPET SA", 6.786409, 58753534.00, 7.75, 2023, {2024y, May, 28d}, {2024y, May, 29d}, {2024y, June, 17d}},
+        {"SNN", "S.N. NUCLEARELECTRICA S.A.", 3.716010, 1120911882.00, 8.10, 2023, {2024y, May, 30d}, {2024y, May, 31d}, {2024y, June, 21d}},
+        {"TLV", "BANCA TRANSILVANIA S.A.", 1.252100, 1000000000.00, 3.93, 2023, {2024y, June, 11d}, {2024y, June, 12d}, {2024y, June, 26d}},
+    };
+    // clang-format on
+
+    BvbScraperTest bvbTest;
+    std::ifstream f("test/data/parse_dividend_activities.txt");
+
+    ASSERT_TRUE(f.is_open());
+
+    std::string data(
+        (std::istreambuf_iterator<char>(f)),
+        std::istreambuf_iterator<char>());
+    f.close();
+
+    ASSERT_TRUE(data.size() > 0);
+
+    auto res = bvbTest.ParseDividendActivities(data);
+    ASSERT_TRUE(res.has_value());
+
+    ASSERT_EQ(res->size(), expected_activities.size());
+
+    DividendActivities& activities = *res;
+
+    for (size_t i = 0; i < expected_activities.size(); i++) {
+        ASSERT_EQ(activities[i].symbol, expected_activities[i].symbol);
+        ASSERT_EQ(activities[i].name, expected_activities[i].name);
+        ASSERT_DOUBLE_EQ(
+            activities[i].dvd_value,
+            expected_activities[i].dvd_value);
+        ASSERT_DOUBLE_EQ(
+            activities[i].dvd_total_value,
+            expected_activities[i].dvd_total_value);
+        ASSERT_DOUBLE_EQ(
+            activities[i].dvd_yield,
+            expected_activities[i].dvd_yield);
+        ASSERT_EQ(activities[i].year, expected_activities[i].year);
+        ASSERT_EQ(
+            activities[i].ex_dvd_date,
+            expected_activities[i].ex_dvd_date);
+        ASSERT_EQ(
+            activities[i].record_date,
+            expected_activities[i].record_date);
+        ASSERT_EQ(
+            activities[i].payment_date,
+            expected_activities[i].payment_date);
     }
 }

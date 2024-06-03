@@ -1,0 +1,57 @@
+    <div class="col-lg-12 col-xs-12 p-0 wrapped-table smaller-table mTop10 mBot20">
+        <div id="ctl00_ctl00_body_rightColumnPlaceHolder_UpdatePanel1">
+	
+                <div>
+		<table class="table table-hover dataTable no-footer generic-table compact " cellspacing="0" widht="100%" border="0" id="gv" style="width:100%;border-collapse:collapse;">
+			<thead>
+				<tr>
+					<th scope="col">Symbol / ISIN</th><th scope="col">Company</th><th class="text-right numericsp" scope="col">Dividend</th><th class="text-right numericsp" scope="col">DIVY</th><th class="text-right datesp" scope="col">Ex-dividend Date</th><th class="text-right datesp" scope="col">Payment date</th><th class="text-right numericsp" scope="col">Year</th><th class="text-right datesp" scope="col">Registration Date</th><th class="text-right numericsp" scope="col">Dividends Total</th>
+				</tr>
+			</thead><tbody>
+				<tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SFG"><strong>
+                                        SFG</strong></a><p style="font-size: 11px">ROSFGPACNOR4</p>
+                                </td><td>Sphera Franchise Group</td><td align="right">1.050000</td><td align="right">3.03</td><td align="right">5/16/2024</td><td align="right">6/6/2024</td><td align="right">2024</td><td align="right">5/17/2024</td><td align="right">40,739,307.00</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=OIL"><strong>
+                                        OIL</strong></a><p style="font-size: 11px">ROOILTACNOR9</p>
+                                </td><td>OIL TERMINAL S.A.</td><td align="right">0.003203</td><td align="right">2.64</td><td align="right">5/20/2024</td><td align="right">6/10/2024</td><td align="right">2023</td><td align="right">5/21/2024</td><td align="right">9,601,748.00</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=AQ"><strong>
+                                        AQ</strong></a><p style="font-size: 11px">RO7066ZEA1R9</p>
+                                </td><td>AQUILA PART PROD COM</td><td align="right">0.070840</td><td align="right">6.16</td><td align="right">5/20/2024</td><td align="right">6/6/2024</td><td align="right">2023</td><td align="right">5/21/2024</td><td align="right">85,008,170.02</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=EVER"><strong>
+                                        EVER</strong></a><p style="font-size: 11px">ROSIFBACNOR0</p>
+                                </td><td>EVERGENT INVESTMENTS S.A.</td><td align="right">0.090000</td><td align="right">6.46</td><td align="right">5/21/2024</td><td align="right">6/12/2024</td><td align="right">2023</td><td align="right">5/22/2024</td><td align="right">81,694,796.85</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=CMP"><strong>
+                                        CMP</strong></a><p style="font-size: 11px">ROCMPSACNOR9</p>
+                                </td><td>COMPA S. A.</td><td align="right">0.007050</td><td align="right">1.07</td><td align="right">5/23/2024</td><td align="right">6/14/2024</td><td align="right">2023</td><td align="right">5/24/2024</td><td align="right">1,535,078.00</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=COTE"><strong>
+                                        COTE</strong></a><p style="font-size: 11px">ROCOTEACNOR7</p>
+                                </td><td>CONPET SA</td><td align="right">6.786409</td><td align="right">7.75</td><td align="right">5/28/2024</td><td align="right">6/17/2024</td><td align="right">2023</td><td align="right">5/29/2024</td><td align="right">58,753,534.00</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=SNN"><strong>
+                                        SNN</strong></a><p style="font-size: 11px">ROSNNEACNOR8</p>
+                                </td><td>S.N. NUCLEARELECTRICA S.A.</td><td align="right">3.716010</td><td align="right">8.10</td><td align="right">5/30/2024</td><td align="right">6/21/2024</td><td align="right">2023</td><td align="right">5/31/2024</td><td align="right">1,120,911,882.00</td>
+				</tr><tr>
+					<td>
+                                    <a href="/FinancialInstruments/Details/FinancialInstrumentsDetails.aspx?s=TLV"><strong>
+                                        TLV</strong></a><p style="font-size: 11px">ROTLVAACNOR1</p>
+                                </td><td>BANCA TRANSILVANIA S.A.</td><td align="right">1.252100</td><td align="right">3.93</td><td align="right">6/11/2024</td><td align="right">6/26/2024</td><td align="right">2023</td><td align="right">6/12/2024</td><td align="right">1,000,000,000.00</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+            
+</div>
+    </div>
