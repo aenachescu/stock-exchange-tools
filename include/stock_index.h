@@ -1,6 +1,7 @@
 #ifndef STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
 #define STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -61,6 +62,19 @@ struct IndexPerformance
     double year_to_date = 0.0; // percentage
 };
 
+struct DividendActivity
+{
+    CompanySymbol symbol;
+    CompanyName name;
+    double dvd_value       = 0.0;
+    double dvd_total_value = 0.0;
+    double dvd_yield       = 0.0; // percentage
+    uint16_t year          = 0;
+    std::chrono::year_month_day ex_dvd_date;
+    std::chrono::year_month_day record_date;
+    std::chrono::year_month_day payment_date;
+};
+
 struct ComparableIndex
 {
     const Index& index;
@@ -93,5 +107,6 @@ struct IndexComparator
 
 using Indexes            = std::vector<Index>;
 using IndexesPerformance = std::vector<IndexPerformance>;
+using DividendActivities = std::vector<DividendActivity>;
 
 #endif // STOCK_EXCHANGE_TOOLS_STOCK_INDEX_H
