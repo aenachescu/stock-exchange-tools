@@ -15,18 +15,35 @@ class IndexReplication : private noncopyable, private nonmovable {
 public:
     struct Entry
     {
+        // index data
         CompanySymbol symbol;
-        double weight       = 0.0;
-        double avg_price    = 0.0;
-        double market_price = 0.0;
-        double target_cost  = 0.0;
-        double actual_cost  = 0.0;
-        double value        = 0.0;
-        double commission   = 0.0;
-        double delta_cost   = 0.0;
-        double delta_value  = 0.0;
-        double dividends    = 0.0;
+        double weight = 0.0;
+
+        // portfolio data
         uint64_t shares     = 0;
+        double market_price = 0.0;
+
+        // activity data
+        double cost       = 0.0;
+        double commission = 0.0;
+        double dividends  = 0.0;
+
+        // statistics based on portfolio data
+        double value                   = 0.0;
+        double avg_price               = 0.0;
+        double profit_loss             = 0.0;
+        double total_return            = 0.0;
+        double profit_loss_percentage  = 0.0;
+        double total_return_percentage = 0.0;
+
+        // statistics based on index data
+        double target_value            = 0.0;
+        double delta_cost              = 0.0;
+        double delta_value             = 0.0;
+        double delta_value_percentage  = 0.0;
+        uint64_t target_shares         = 0;
+        int64_t delta_shares           = 0;
+        double delta_shares_percentage = 0.0;
     };
 
     using Entries = std::vector<Entry>;
@@ -60,11 +77,11 @@ public:
         const Portfolio& portfolio);
 
 private:
-    Error FillEntries(const Index& index);
-    Error CalculateCostAndValue(
-        const Portfolio& portfolio,
-        const Activities& activities);
-    void CalculateDividends(const Activities& activities);
+    Error FillIndexData(const Index& index);
+    Error FillPortfolioData(const Portfolio& portfolio);
+    Error FillActivityData(const Activities& activities);
+    void FillPortfolioStatistics();
+    void FillIndexStatistics(uint64_t cashAmmount);
 
 private:
     std::map<CompanySymbol, Entry> m_entries;

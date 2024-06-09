@@ -1,8 +1,19 @@
 #include "index_replication.h"
 
 #include <algorithm>
+#include <cfenv>
+#include <cmath>
 
 using IR = IndexReplication;
+
+uint64_t ceilToU64(double d)
+{
+    int save_round = std::fegetround();
+    std::fesetround(FE_UPWARD);
+    uint64_t result = static_cast<uint64_t>(std::llrint(d));
+    std::fesetround(save_round);
+    return result;
+}
 
 tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
     uint64_t cashAmmount)
@@ -11,16 +22,13 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
         return tl::unexpected(Error::NoData);
     }
 
+    FillIndexStatistics(cashAmmount);
+
     std::vector<Entry> res;
     res.reserve(m_entries.size());
 
     for (const auto& it : m_entries) {
         res.push_back(it.second);
-
-        Entry& e      = res.back();
-        e.target_cost = e.weight * cashAmmount;
-        e.delta_cost  = e.actual_cost - e.target_cost;
-        e.delta_value = e.value - e.target_cost;
     }
 
     std::sort(res.begin(), res.end(), EntryCmp{});
@@ -36,20 +44,30 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
 {
     Error err = Error::NoError;
 
-    err = FillEntries(index);
-    if (err != Error::NoError) {
-        return tl::unexpected(err);
-    }
+    do {
+        err = FillIndexData(index);
+        if (err != Error::NoError) {
+            break;
+        }
 
-    err = CalculateCostAndValue(portfolio, activities);
-    if (err != Error::NoError) {
-        m_entries.clear();
-        return tl::unexpected(err);
-    }
+        err = FillPortfolioData(portfolio);
+        if (err != Error::NoError) {
+            break;
+        }
 
-    CalculateDividends(activities);
+        err = FillActivityData(activities);
+        if (err != Error::NoError) {
+            break;
+        }
 
-    return CalculateReplication(cashAmmount);
+        FillPortfolioStatistics();
+
+        return CalculateReplication(cashAmmount);
+    } while (false);
+
+    m_entries.clear();
+
+    return tl::unexpected(err);
 }
 
 tl::expected<uint64_t, Error> IndexReplication::GetPortfolioValue(
@@ -74,14 +92,10 @@ tl::expected<uint64_t, Error> IndexReplication::GetPortfolioValue(
         }
     }
 
-    if (std::floor(value) == value) {
-        return static_cast<uint64_t>(value);
-    }
-
-    return static_cast<uint64_t>(value) + 1;
+    return ceilToU64(value);
 }
 
-Error IndexReplication::FillEntries(const Index& index)
+Error IndexReplication::FillIndexData(const Index& index)
 {
     m_entries.clear();
 
@@ -113,35 +127,8 @@ Error IndexReplication::FillEntries(const Index& index)
     return Error::NoError;
 }
 
-Error IndexReplication::CalculateCostAndValue(
-    const Portfolio& portfolio,
-    const Activities& activities)
+Error IndexReplication::FillPortfolioData(const Portfolio& portfolio)
 {
-    for (const auto& activity : activities) {
-        if (activity.type != ActivityType::Buy &&
-            activity.type != ActivityType::AssetTransfer) {
-            continue;
-        }
-
-        auto entryIt = m_entries.find(activity.symbol);
-        if (entryIt == m_entries.end()) {
-            continue;
-        }
-
-        if (std::holds_alternative<uint64_t>(activity.quantity) == false) {
-            return Error::UnexpectedData;
-        }
-
-        Entry& entry    = entryIt->second;
-        uint64_t shares = std::get<uint64_t>(activity.quantity);
-        double ammount  = std::fabs(activity.cash_ammount);
-        double cost     = activity.price * shares;
-
-        entry.actual_cost += cost;
-        entry.commission += (ammount - cost);
-        entry.shares += shares;
-    }
-
     for (const auto& elem : portfolio.entries) {
         auto entryIt = m_entries.find(elem.symbol);
         if (entryIt == m_entries.end()) {
@@ -152,33 +139,104 @@ Error IndexReplication::CalculateCostAndValue(
             return Error::UnexpectedData;
         }
 
-        if (entryIt->second.shares != std::get<uint64_t>(elem.quantity)) {
-            return Error::InvalidData;
-        }
-
         Entry& entry = entryIt->second;
 
+        entry.shares       = std::get<uint64_t>(elem.quantity);
         entry.market_price = elem.market_price;
-        entry.avg_price    = entry.actual_cost / entry.shares;
-        entry.value        = entry.market_price * entryIt->second.shares;
     }
 
     return Error::NoError;
 }
 
-void IndexReplication::CalculateDividends(const Activities& activities)
+Error IndexReplication::FillActivityData(const Activities& activities)
 {
+    std::map<CompanySymbol, uint64_t> sharesPerSymbol;
+
+    for (const auto& it : m_entries) {
+        sharesPerSymbol.emplace(it.first, 0ull);
+    }
+
     for (const auto& activity : activities) {
-        if (activity.type != ActivityType::Dividend) {
+        if (activity.type != ActivityType::Buy &&
+            activity.type != ActivityType::AssetTransfer &&
+            activity.type != ActivityType::Dividend) {
             continue;
         }
 
-        auto entryIt = m_entries.find(activity.transaction_id);
+        auto entryIt = m_entries.find(activity.symbol);
         if (entryIt == m_entries.end()) {
             continue;
         }
 
-        entryIt->second.dividends +=
-            (activity.cash_ammount - activity.commission);
+        Entry& entry = entryIt->second;
+
+        if (activity.type == ActivityType::Buy ||
+            activity.type == ActivityType::AssetTransfer) {
+            if (std::holds_alternative<uint64_t>(activity.quantity) == false) {
+                return Error::UnexpectedData;
+            }
+
+            uint64_t shares = std::get<uint64_t>(activity.quantity);
+            double ammount  = std::fabs(activity.cash_ammount);
+            double cost     = activity.price * shares;
+
+            entry.cost += cost;
+            entry.commission += (ammount - cost);
+
+            sharesPerSymbol[activity.symbol] += shares;
+        } else if (activity.type == ActivityType::Dividend) {
+            entry.dividends += (activity.cash_ammount - activity.commission);
+        }
+    }
+
+    for (const auto& it : m_entries) {
+        auto sharesIt = sharesPerSymbol.find(it.first);
+        if (sharesIt == sharesPerSymbol.end()) {
+            return Error::InvalidData;
+        }
+
+        if (it.second.shares != sharesIt->second) {
+            return Error::InvalidData;
+        }
+
+        sharesPerSymbol.erase(sharesIt);
+    }
+
+    if (sharesPerSymbol.size() != 0) {
+        return Error::InvalidData;
+    }
+
+    return Error::NoError;
+}
+
+void IndexReplication::FillPortfolioStatistics()
+{
+    for (auto& it : m_entries) {
+        Entry& e = it.second;
+
+        e.value        = e.shares * e.market_price;
+        e.avg_price    = e.cost / e.shares;
+        e.profit_loss  = e.value - e.cost;
+        e.total_return = e.profit_loss + e.dividends;
+
+        e.profit_loss_percentage  = e.profit_loss / e.cost * 100.0;
+        e.total_return_percentage = e.total_return / e.cost * 100.0;
+    }
+}
+
+void IndexReplication::FillIndexStatistics(uint64_t cashAmmount)
+{
+    for (auto& it : m_entries) {
+        Entry& e = it.second;
+
+        e.target_value           = e.weight * cashAmmount;
+        e.delta_cost             = e.cost - e.target_value;
+        e.delta_value            = e.value - e.target_value;
+        e.delta_value_percentage = e.delta_value / e.target_value * 100.0;
+
+        e.target_shares = ceilToU64(e.target_value / e.market_price);
+        e.delta_shares  = e.shares - e.target_shares;
+        e.delta_shares_percentage =
+            static_cast<double>(e.delta_shares) / e.target_shares * 100.0;
     }
 }

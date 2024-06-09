@@ -328,8 +328,8 @@ int CmdPrintIndexReplication(
     ColorizedTable table;
     size_t id                    = 1;
     double sumWeight             = 0.0;
-    double sumTargetCost         = 0.0;
-    double sumActualCost         = 0.0;
+    double sumTargetValue        = 0.0;
+    double sumCost               = 0.0;
     double sumValue              = 0.0;
     double sumCommission         = 0.0;
     double sumDeltaCost          = 0.0;
@@ -356,8 +356,8 @@ int CmdPrintIndexReplication(
         "Shares",
         "Avg price",
         "Market price",
-        "Target cost",
-        "Actual cost",
+        "Target value",
+        "Cost",
         "Value",
         "Commission",
         "Delta cost",
@@ -372,8 +372,8 @@ int CmdPrintIndexReplication(
 
     for (const auto& i : *replication) {
         sumWeight += i.weight;
-        sumTargetCost += i.target_cost;
-        sumActualCost += i.actual_cost;
+        sumTargetValue += i.target_value;
+        sumCost += i.cost;
         sumValue += i.value;
         sumCommission += i.commission;
         sumDeltaCost += i.delta_cost;
@@ -388,12 +388,6 @@ int CmdPrintIndexReplication(
             sumNegativeDeltaValue += i.delta_value;
         }
 
-        double pl  = i.value - i.actual_cost;
-        double plp = pl / i.actual_cost * 100.0;
-        double tr  = i.value + i.dividends - i.actual_cost;
-        double trp = tr / i.actual_cost * 100.0;
-        double dvp = i.delta_value / i.target_cost * 100.0;
-
         table.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.symbol,
@@ -401,8 +395,8 @@ int CmdPrintIndexReplication(
             std::to_string(i.shares),
             double_to_string(i.avg_price),
             double_to_string(i.market_price),
-            double_to_string(i.target_cost),
-            double_to_string(i.actual_cost),
+            double_to_string(i.target_value),
+            double_to_string(i.cost),
             double_to_string(i.value),
             double_to_string(i.commission),
             ColorizedString{
@@ -411,21 +405,31 @@ int CmdPrintIndexReplication(
             ColorizedString{
                 double_to_string(i.delta_value),
                 get_color(i.delta_value)},
-            ColorizedString{double_to_string(dvp), get_color(dvp)},
+            ColorizedString{
+                double_to_string(i.delta_value_percentage),
+                get_color(i.delta_value_percentage)},
             double_to_string(i.dividends),
-            ColorizedString{double_to_string(pl), get_color(pl)},
-            ColorizedString{double_to_string(plp), get_color(plp)},
-            ColorizedString{double_to_string(tr), get_color(tr)},
-            ColorizedString{double_to_string(trp), get_color(trp)},
+            ColorizedString{
+                double_to_string(i.profit_loss),
+                get_color(i.profit_loss)},
+            ColorizedString{
+                double_to_string(i.profit_loss_percentage),
+                get_color(i.profit_loss_percentage)},
+            ColorizedString{
+                double_to_string(i.total_return),
+                get_color(i.total_return)},
+            ColorizedString{
+                double_to_string(i.total_return_percentage),
+                get_color(i.total_return_percentage)},
         });
         id++;
     }
 
-    double pl  = sumValue - sumActualCost;
-    double plp = pl / sumActualCost * 100.0;
-    double tr  = sumValue + sumDividends - sumActualCost;
-    double trp = tr / sumActualCost * 100.0;
-    double dvp = sumAllDeltaValues / sumTargetCost * 100.0;
+    double pl  = sumValue - sumCost;
+    double plp = pl / sumCost * 100.0;
+    double tr  = sumValue + sumDividends - sumCost;
+    double trp = tr / sumCost * 100.0;
+    double dvp = sumAllDeltaValues / sumTargetValue * 100.0;
 
     table.emplace_back(std::vector<ColorizedString>{
         "",
@@ -434,8 +438,8 @@ int CmdPrintIndexReplication(
         "",
         "",
         "",
-        double_to_string(sumTargetCost),
-        double_to_string(sumActualCost),
+        double_to_string(sumTargetValue),
+        double_to_string(sumCost),
         double_to_string(sumValue),
         double_to_string(sumCommission),
         double_to_string(sumDeltaCost),
