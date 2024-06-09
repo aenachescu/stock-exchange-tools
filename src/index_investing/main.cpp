@@ -325,7 +325,8 @@ int CmdPrintIndexReplication(
     uint64_t ammount,
     bool addPortfolioValue)
 {
-    ColorizedTable table;
+    ColorizedTable indexReplicationTable;
+    ColorizedTable profitTable;
     size_t id                    = 1;
     double sumWeight             = 0.0;
     double sumTargetValue        = 0.0;
@@ -339,7 +340,7 @@ int CmdPrintIndexReplication(
     double sumNegativeDeltaValue = 0.0;
     double sumAllDeltaValues     = 0.0;
 
-    auto get_color = [](double val) -> Color {
+    auto get_color = []<typename T>(T val) -> Color {
         return val < 0.0 ? Color::Red : Color::Green;
     };
 
@@ -348,12 +349,11 @@ int CmdPrintIndexReplication(
         return -1;
     }
 
-    table.reserve(replication->size() + 1);
-    table.emplace_back(std::vector<ColorizedString>{
+    indexReplicationTable.reserve(replication->size() + 2);
+    indexReplicationTable.emplace_back(std::vector<ColorizedString>{
         "#",
         "Symbol",
         "Weight",
-        "Shares",
         "Avg price",
         "Market price",
         "Target value",
@@ -363,6 +363,18 @@ int CmdPrintIndexReplication(
         "Delta cost",
         "Delta value",
         "Delta value %",
+        "Shares",
+        "Target shares",
+        "Delta shares",
+        "Delta shares %",
+    });
+
+    profitTable.reserve(replication->size() + 1);
+    profitTable.emplace_back(std::vector<ColorizedString>{
+        "#",
+        "Symbol",
+        "Cost",
+        "Value",
         "Dvd",
         "P/L",
         "P/L %",
@@ -388,11 +400,10 @@ int CmdPrintIndexReplication(
             sumNegativeDeltaValue += i.delta_value;
         }
 
-        table.emplace_back(std::vector<ColorizedString>{
+        indexReplicationTable.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.symbol,
             double_to_string(i.weight * 100.0),
-            std::to_string(i.shares),
             double_to_string(i.avg_price),
             double_to_string(i.market_price),
             double_to_string(i.target_value),
@@ -408,6 +419,21 @@ int CmdPrintIndexReplication(
             ColorizedString{
                 double_to_string(i.delta_value_percentage),
                 get_color(i.delta_value_percentage)},
+            std::to_string(i.shares),
+            std::to_string(i.target_shares),
+            ColorizedString{
+                double_to_string(i.delta_shares),
+                get_color(i.delta_shares)},
+            ColorizedString{
+                double_to_string(i.delta_shares_percentage),
+                get_color(i.delta_shares_percentage)},
+        });
+
+        profitTable.emplace_back(std::vector<ColorizedString>{
+            std::to_string(id),
+            i.symbol,
+            double_to_string(i.cost),
+            double_to_string(i.value),
             double_to_string(i.dividends),
             ColorizedString{
                 double_to_string(i.profit_loss),
@@ -422,6 +448,7 @@ int CmdPrintIndexReplication(
                 double_to_string(i.total_return_percentage),
                 get_color(i.total_return_percentage)},
         });
+
         id++;
     }
 
@@ -431,11 +458,10 @@ int CmdPrintIndexReplication(
     double trp = tr / sumCost * 100.0;
     double dvp = sumAllDeltaValues / sumTargetValue * 100.0;
 
-    table.emplace_back(std::vector<ColorizedString>{
+    indexReplicationTable.emplace_back(std::vector<ColorizedString>{
         "",
         "sum",
         double_to_string(sumWeight * 100.0),
-        "",
         "",
         "",
         double_to_string(sumTargetValue),
@@ -445,14 +471,12 @@ int CmdPrintIndexReplication(
         double_to_string(sumDeltaCost),
         double_to_string(sumDeltaValue),
         double_to_string(dvp),
-        double_to_string(sumDividends),
-        ColorizedString{double_to_string(pl), get_color(pl)},
-        ColorizedString{double_to_string(plp), get_color(plp)},
-        ColorizedString{double_to_string(tr), get_color(tr)},
-        ColorizedString{double_to_string(trp), get_color(trp)},
-    });
-    table.emplace_back(std::vector<ColorizedString>{
         "",
+        "",
+        "",
+        "",
+    });
+    indexReplicationTable.emplace_back(std::vector<ColorizedString>{
         "",
         "",
         "",
@@ -469,10 +493,22 @@ int CmdPrintIndexReplication(
         "",
         "",
         "",
-        "",
     });
 
-    print_table(table, {id});
+    profitTable.emplace_back(std::vector<ColorizedString>{
+        "",
+        "sum",
+        double_to_string(sumCost),
+        double_to_string(sumValue),
+        double_to_string(sumDividends),
+        ColorizedString{double_to_string(pl), get_color(pl)},
+        ColorizedString{double_to_string(plp), get_color(plp)},
+        ColorizedString{double_to_string(tr), get_color(tr)},
+        ColorizedString{double_to_string(trp), get_color(trp)},
+    });
+
+    print_table(indexReplicationTable, {id});
+    print_table(profitTable, {id});
 
     return 0;
 }
