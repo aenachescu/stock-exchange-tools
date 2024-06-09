@@ -283,6 +283,13 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
         return tl::unexpected(Error::InvalidArg);
     }
 
+    auto dvdActivities = bvb.GetDividendActivities();
+    if (! dvdActivities) {
+        std::cout << "Failed to get dividend activities from BVB: "
+                  << magic_enum::enum_name(dvdActivities.error()) << std::endl;
+        return tl::unexpected(dvdActivities.error());
+    }
+
     auto portfolio = tv.GetPortfolio();
     if (! portfolio) {
         std::cout << "Failed to get portfolio: "
@@ -309,8 +316,12 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
         ammount += *portfolioValue;
     }
 
-    auto replication =
-        ir.CalculateReplication(*index, *portfolio, *activities, ammount);
+    auto replication = ir.CalculateReplication(
+        *index,
+        *portfolio,
+        *activities,
+        *dvdActivities,
+        ammount);
     if (! replication) {
         std::cout << "Failed to calculate index replication: "
                   << magic_enum::enum_name(replication.error()) << std::endl;
@@ -336,12 +347,19 @@ int CmdPrintIndexReplication(
     double sumDeltaCost          = 0.0;
     double sumDeltaValue         = 0.0;
     double sumDividends          = 0.0;
+    double sumEstDividends       = 0.0;
+    double sumEstNetDividends    = 0.0;
     double sumNegativeDeltaCost  = 0.0;
     double sumNegativeDeltaValue = 0.0;
     double sumAllDeltaValues     = 0.0;
+    bool hasEstDvd               = false;
+    Color estDvdColor            = Color::Red;
+    const auto today =
+        std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(
+            std::chrono::system_clock::now())};
 
     auto get_color = []<typename T>(T val) -> Color {
-        return val < 0.0 ? Color::Red : Color::Green;
+        return val < 0 ? Color::Red : Color::Green;
     };
 
     auto replication = GetIndexReplication(cfg, ammount, addPortfolioValue);
@@ -380,6 +398,12 @@ int CmdPrintIndexReplication(
         "P/L %",
         "Total return",
         "Total return %",
+        "Est. dvd",
+        "Est. net dvd",
+        "Est. shares",
+        "Ex date",
+        "Record date",
+        "Payment date",
     });
 
     for (const auto& i : *replication) {
@@ -391,6 +415,8 @@ int CmdPrintIndexReplication(
         sumDeltaCost += i.delta_cost;
         sumDeltaValue += i.delta_value;
         sumDividends += i.dividends;
+        sumEstDividends += i.estimated_dvd;
+        sumEstNetDividends += i.estimated_net_dvd;
         sumAllDeltaValues += std::abs(i.delta_value);
 
         if (i.delta_cost < 0.0) {
@@ -400,12 +426,20 @@ int CmdPrintIndexReplication(
             sumNegativeDeltaValue += i.delta_value;
         }
 
+        if (i.estimated_shares != 0) {
+            hasEstDvd   = true;
+            estDvdColor = today < i.ex_date ? Color::Red : Color::Green;
+        } else {
+            hasEstDvd = false;
+        }
+        hasEstDvd = i.estimated_shares != 0;
+
         indexReplicationTable.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.symbol,
             double_to_string(i.weight * 100.0),
-            double_to_string(i.avg_price),
-            double_to_string(i.market_price),
+            double_to_string(i.avg_price, 6),
+            double_to_string(i.market_price, 6),
             double_to_string(i.target_value),
             double_to_string(i.cost),
             double_to_string(i.value),
@@ -447,6 +481,14 @@ int CmdPrintIndexReplication(
             ColorizedString{
                 double_to_string(i.total_return_percentage),
                 get_color(i.total_return_percentage)},
+            hasEstDvd
+                ? ColorizedString{double_to_string(i.estimated_dvd), estDvdColor}
+                : "-",
+            hasEstDvd ? double_to_string(i.estimated_net_dvd) : "-",
+            hasEstDvd ? std::to_string(i.estimated_shares) : "-",
+            hasEstDvd ? date_to_string(i.ex_date) : "-",
+            hasEstDvd ? date_to_string(i.record_date) : "-",
+            hasEstDvd ? date_to_string(i.payment_date) : "-",
         });
 
         id++;
@@ -505,6 +547,12 @@ int CmdPrintIndexReplication(
         ColorizedString{double_to_string(plp), get_color(plp)},
         ColorizedString{double_to_string(tr), get_color(tr)},
         ColorizedString{double_to_string(trp), get_color(trp)},
+        double_to_string(sumEstDividends),
+        double_to_string(sumEstNetDividends),
+        "",
+        "",
+        "",
+        "",
     });
 
     print_table(indexReplicationTable, {id});

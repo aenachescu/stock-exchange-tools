@@ -2,6 +2,7 @@
 
 #include "string_utils.h"
 
+#include <iomanip>
 #include <magic_enum.hpp>
 
 tl::expected<AssetValue, Error> Portfolio::GetValueByAsset(
@@ -736,6 +737,22 @@ Error Tradeville::ParseActivityDate(
             return Error::TradevilleInvalidDate;
         }
         activities[i].date = dateArray[i].GetString();
+
+        // set ymd field
+        {
+            std::tm tm;
+            std::istringstream iss(activities[i].date);
+
+            iss >> std::get_time(&tm, "%Y-%m-%d");
+            if (iss.fail() == true) {
+                return Error::TradevilleInvalidDate;
+            }
+
+            activities[i].ymd = std::chrono::year_month_day(
+                std::chrono::year(tm.tm_year + 1900),
+                std::chrono::month(tm.tm_mon + 1),
+                std::chrono::day(tm.tm_mday));
+        }
     }
 
     return Error::NoError;

@@ -24,9 +24,15 @@ public:
         double market_price = 0.0;
 
         // activity data
-        double cost       = 0.0;
-        double commission = 0.0;
-        double dividends  = 0.0;
+        double cost               = 0.0;
+        double commission         = 0.0;
+        double dividends          = 0.0;
+        double estimated_dvd      = 0.0;
+        double estimated_net_dvd  = 0.0;
+        uint64_t estimated_shares = 0;
+        std::chrono::year_month_day ex_date;
+        std::chrono::year_month_day record_date;
+        std::chrono::year_month_day payment_date;
 
         // statistics based on portfolio data
         double value                   = 0.0;
@@ -70,6 +76,7 @@ public:
         const Index& index,
         const Portfolio& portfolio,
         const Activities& activities,
+        const DividendActivities& dvdActivities,
         uint64_t cashAmmount);
 
     tl::expected<uint64_t, Error> GetPortfolioValue(
@@ -80,8 +87,22 @@ private:
     Error FillIndexData(const Index& index);
     Error FillPortfolioData(const Portfolio& portfolio);
     Error FillActivityData(const Activities& activities);
+    Error FillDividendEstimates(
+        const Activities& activities,
+        const DividendActivities& dvd);
     void FillPortfolioStatistics();
     void FillIndexStatistics(uint64_t cashAmmount);
+
+    DividendActivities::const_iterator FindDividendActivity(
+        const DividendActivities& dvdActivities,
+        const CompanySymbol& symbol,
+        const std::chrono::year_month_day& today);
+
+    Error CalculateEstimateShares(
+        const Activities& activities,
+        const CompanySymbol& symbol,
+        const std::chrono::year_month_day& date,
+        uint64_t& shares);
 
 private:
     std::map<CompanySymbol, Entry> m_entries;

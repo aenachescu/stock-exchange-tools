@@ -51,6 +51,7 @@ struct Portfolio
 
 struct Activity
 {
+    std::chrono::year_month_day ymd;
     std::string date;
     std::string symbol;
     std::string note;

@@ -40,6 +40,7 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
     const Index& index,
     const Portfolio& portfolio,
     const Activities& activities,
+    const DividendActivities& dvdActivities,
     uint64_t cashAmmount)
 {
     Error err = Error::NoError;
@@ -56,6 +57,11 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
         }
 
         err = FillActivityData(activities);
+        if (err != Error::NoError) {
+            break;
+        }
+
+        FillDividendEstimates(activities, dvdActivities);
         if (err != Error::NoError) {
             break;
         }
@@ -209,6 +215,41 @@ Error IndexReplication::FillActivityData(const Activities& activities)
     return Error::NoError;
 }
 
+Error IndexReplication::FillDividendEstimates(
+    const Activities& activities,
+    const DividendActivities& dvd)
+{
+    Error err = Error::NoError;
+    const auto today =
+        std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(
+            std::chrono::system_clock::now())};
+
+    for (auto& it : m_entries) {
+        Entry& e   = it.second;
+        auto dvdIt = FindDividendActivity(dvd, e.symbol, today);
+        if (dvdIt == dvd.end()) {
+            continue;
+        }
+
+        err = CalculateEstimateShares(
+            activities,
+            e.symbol,
+            dvdIt->ex_dvd_date,
+            e.estimated_shares);
+        if (err != Error::NoError) {
+            return err;
+        }
+
+        e.estimated_dvd     = e.estimated_shares * dvdIt->dvd_value;
+        e.estimated_net_dvd = e.estimated_dvd * 0.92;
+        e.ex_date           = dvdIt->ex_dvd_date;
+        e.record_date       = dvdIt->record_date;
+        e.payment_date      = dvdIt->payment_date;
+    }
+
+    return Error::NoError;
+}
+
 void IndexReplication::FillPortfolioStatistics()
 {
     for (auto& it : m_entries) {
@@ -239,4 +280,50 @@ void IndexReplication::FillIndexStatistics(uint64_t cashAmmount)
         e.delta_shares_percentage =
             static_cast<double>(e.delta_shares) / e.target_shares * 100.0;
     }
+}
+
+DividendActivities::const_iterator IndexReplication::FindDividendActivity(
+    const DividendActivities& dvdActivities,
+    const CompanySymbol& symbol,
+    const std::chrono::year_month_day& today)
+{
+    for (auto it = dvdActivities.begin(); it != dvdActivities.end(); ++it) {
+        if (it->symbol == symbol && today < it->payment_date) {
+            return it;
+        }
+    }
+
+    return dvdActivities.end();
+}
+
+Error IndexReplication::CalculateEstimateShares(
+    const Activities& activities,
+    const CompanySymbol& symbol,
+    const std::chrono::year_month_day& date,
+    uint64_t& shares)
+{
+    shares = 0;
+
+    for (const auto& activity : activities) {
+        if (activity.type != ActivityType::Buy &&
+            activity.type != ActivityType::AssetTransfer) {
+            continue;
+        }
+
+        if (activity.ymd >= date) {
+            continue;
+        }
+
+        if (activity.symbol != symbol) {
+            continue;
+        }
+
+        if (std::holds_alternative<uint64_t>(activity.quantity) == false) {
+            return Error::UnexpectedData;
+        }
+
+        shares += std::get<uint64_t>(activity.quantity);
+    }
+
+    return Error::NoError;
 }
