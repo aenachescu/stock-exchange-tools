@@ -10,6 +10,7 @@ enum class ActivityType
     Deposit,
     AssetTransfer,
     Tax,
+    Out,
 };
 
 #endif // STOCK_EXCHANGE_TOOLS_ACTIVITY_TYPE_H

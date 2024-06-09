@@ -772,6 +772,8 @@ Error Tradeville::ParseActivityType(
             } else {
                 activities[i].type = ActivityType::Deposit;
             }
+        } else if (std::string_view{"Out"} == typeArray[i].GetString()) {
+            activities[i].type = ActivityType::Out;
         } else {
             return Error::TradevilleInvalidActivityType;
         }
@@ -812,7 +814,8 @@ Error Tradeville::ParseActivityQuantity(
             activities[i].quantity = quantityArray[i].GetUint64();
         } else if (
             activities[i].type == ActivityType::Deposit ||
-            activities[i].type == ActivityType::Dividend) {
+            activities[i].type == ActivityType::Dividend ||
+            activities[i].type == ActivityType::Out) {
             if (quantityArray[i].IsUint64() == true) {
                 activities[i].quantity = quantityArray[i].GetUint64();
             } else if (quantityArray[i].IsDouble() == true) {
