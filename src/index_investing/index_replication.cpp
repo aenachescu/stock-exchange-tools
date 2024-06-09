@@ -43,6 +43,7 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
 
     err = CalculateCostAndValue(portfolio, activities);
     if (err != Error::NoError) {
+        m_entries.clear();
         return tl::unexpected(err);
     }
 
@@ -116,12 +117,6 @@ Error IndexReplication::CalculateCostAndValue(
     const Portfolio& portfolio,
     const Activities& activities)
 {
-    std::map<CompanySymbol, uint64_t> quantities;
-
-    for (const auto& it : m_entries) {
-        quantities.emplace(it.first, 0ull);
-    }
-
     for (const auto& activity : activities) {
         if (activity.type != ActivityType::Buy &&
             activity.type != ActivityType::AssetTransfer) {
@@ -137,13 +132,14 @@ Error IndexReplication::CalculateCostAndValue(
             return Error::UnexpectedData;
         }
 
-        quantities[activity.symbol] += std::get<uint64_t>(activity.quantity);
+        Entry& entry    = entryIt->second;
+        uint64_t shares = std::get<uint64_t>(activity.quantity);
+        double ammount  = std::fabs(activity.cash_ammount);
+        double cost     = activity.price * shares;
 
-        double ammount = std::fabs(activity.cash_ammount);
-        double cost    = activity.price * std::get<uint64_t>(activity.quantity);
-
-        entryIt->second.actual_cost += cost;
-        entryIt->second.commission += (ammount - cost);
+        entry.actual_cost += cost;
+        entry.commission += (ammount - cost);
+        entry.shares += shares;
     }
 
     for (const auto& elem : portfolio.entries) {
@@ -156,20 +152,15 @@ Error IndexReplication::CalculateCostAndValue(
             return Error::UnexpectedData;
         }
 
-        if (quantities[elem.symbol] != std::get<uint64_t>(elem.quantity)) {
+        if (entryIt->second.shares != std::get<uint64_t>(elem.quantity)) {
             return Error::InvalidData;
         }
 
-        entryIt->second.value =
-            elem.market_price * std::get<uint64_t>(elem.quantity);
+        Entry& entry = entryIt->second;
 
-        quantities.erase(elem.symbol);
-    }
-
-    for (auto it : quantities) {
-        if (it.second != 0) {
-            return Error::InvalidData;
-        }
+        entry.market_price = elem.market_price;
+        entry.avg_price    = entry.actual_cost / entry.shares;
+        entry.value        = entry.market_price * entryIt->second.shares;
     }
 
     return Error::NoError;

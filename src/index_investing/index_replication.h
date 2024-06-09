@@ -16,14 +16,17 @@ public:
     struct Entry
     {
         CompanySymbol symbol;
-        double weight      = 0.0;
-        double target_cost = 0.0;
-        double actual_cost = 0.0;
-        double value       = 0.0;
-        double commission  = 0.0;
-        double delta_cost  = 0.0;
-        double delta_value = 0.0;
-        double dividends   = 0.0;
+        double weight       = 0.0;
+        double avg_price    = 0.0;
+        double market_price = 0.0;
+        double target_cost  = 0.0;
+        double actual_cost  = 0.0;
+        double value        = 0.0;
+        double commission   = 0.0;
+        double delta_cost   = 0.0;
+        double delta_value  = 0.0;
+        double dividends    = 0.0;
+        uint64_t shares     = 0;
     };
 
     using Entries = std::vector<Entry>;
