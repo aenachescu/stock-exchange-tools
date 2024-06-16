@@ -986,6 +986,8 @@ Error Tradeville::ParseActivityTransactionId(
     const rapidjson::Value& doc,
     Activities& activities)
 {
+    static constexpr std::string_view kDvdNote = "Dividend net ";
+
     auto transactionArray = doc.FindMember("TranzNo")->value.GetArray();
 
     for (size_t i = 0; i < activities.size(); i++) {
@@ -995,7 +997,18 @@ Error Tradeville::ParseActivityTransactionId(
         activities[i].transaction_id = transactionArray[i].GetString();
 
         if (activities[i].type == ActivityType::Dividend) {
-            activities[i].symbol = activities[i].transaction_id;
+            if (activities[i].transaction_id.empty() == false) {
+                activities[i].symbol = activities[i].transaction_id;
+                continue;
+            }
+
+            if (activities[i].note.starts_with(kDvdNote) == true) {
+                activities[i].symbol =
+                    activities[i].note.substr(kDvdNote.size());
+                continue;
+            }
+
+            return Error::TradevilleInvalidSymbol;
         }
     }
 
