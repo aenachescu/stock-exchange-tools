@@ -1,5 +1,7 @@
 #include "index_replication.h"
 
+#include "chrono_utils.h"
+
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -219,10 +221,8 @@ Error IndexReplication::FillDividendEstimates(
     const Activities& activities,
     const DividendActivities& dvd)
 {
-    Error err = Error::NoError;
-    const auto today =
-        std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(
-            std::chrono::system_clock::now())};
+    Error err        = Error::NoError;
+    const auto today = ymd_today();
 
     for (auto& it : m_entries) {
         Entry& e   = it.second;

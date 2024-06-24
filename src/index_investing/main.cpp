@@ -7,7 +7,6 @@
 #include "terminal_ui.h"
 #include "tradeville.h"
 
-#include <chrono>
 #include <iostream>
 #include <magic_enum.hpp>
 
@@ -354,9 +353,7 @@ int CmdPrintIndexReplication(
     double sumAllDeltaValues     = 0.0;
     bool hasEstDvd               = false;
     Color estDvdColor            = Color::Red;
-    const auto today =
-        std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(
-            std::chrono::system_clock::now())};
+    const auto today             = ymd_today();
 
     auto get_color = []<typename T>(T val) -> Color {
         return val < 0 ? Color::Red : Color::Green;

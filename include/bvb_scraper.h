@@ -83,7 +83,7 @@ private:
         bool hasSeparators,
         bool allowNbsp);
     bool IsValidNumber(const std::string& val);
-    bool IsValidDate(const std::string& val);
+    bool IsValidDate(const std::string& val, bool allowNbsp);
 
     tl::expected<HttpResponse, Error> SendHttpRequest(
         const char* url,

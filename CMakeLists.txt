@@ -32,6 +32,7 @@ add_executable(bvb_scraper_tool
     src/curl_utils.cpp
     src/string_utils.cpp
     src/cli_utils.cpp
+    src/chrono_utils.cpp
 )
 target_include_directories(bvb_scraper_tool PUBLIC
     include
@@ -83,6 +84,7 @@ add_executable(set_unit_tests
     src/bvb_scraper.cpp
     src/curl_utils.cpp
     src/string_utils.cpp
+    src/chrono_utils.cpp
 )
 target_include_directories(set_unit_tests PUBLIC
     include

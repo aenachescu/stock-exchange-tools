@@ -1,5 +1,6 @@
 #include "bvb_scraper.h"
 
+#include "chrono_utils.h"
 #include "string_utils.h"
 
 #include <algorithm>
@@ -14,6 +15,8 @@
 #define NBSP_OR_DOUBLE_FUNC(val)  (val == "&nbsp;" ? 0.0 : std::stod(val))
 #define NBSP_OR_SDOUBLE_FUNC(val) (val == "&nbsp;" ? 0.0 : StringToDouble(val))
 #define NBSP_OR_U64_FUNC(val)     (val == "&nbsp;" ? 0ull : StringToU64(val))
+#define NBSP_OR_DATE_FUNC(val)                                                 \
+    (val == "&nbsp;" ? ymd_tomorrow() : StringToDate(val))
 
 uint64_t StringToU64(const std::string& val)
 {
@@ -516,9 +519,13 @@ bool BvbScraper::IsValidNumber(const std::string& val)
     return points < 2;
 }
 
-bool BvbScraper::IsValidDate(const std::string& val)
+bool BvbScraper::IsValidDate(const std::string& val, bool allowNbsp)
 {
     size_t slash = 0;
+
+    if (allowNbsp == true && val == "&nbsp;") {
+        return true;
+    }
 
     for (char c : val) {
         if (c == '/') {
@@ -1125,7 +1132,7 @@ tl::expected<DividendActivities, Error> BvbScraper::ParseDividendActivities(
     DEF_SETTER(DividendActivity, dvd_value, std::stod);
     DEF_SETTER(DividendActivity, dvd_yield, NBSP_OR_DOUBLE_FUNC);
     DEF_SETTER(DividendActivity, ex_dvd_date, StringToDate);
-    DEF_SETTER(DividendActivity, payment_date, StringToDate);
+    DEF_SETTER(DividendActivity, payment_date, NBSP_OR_DATE_FUNC);
     DEF_SETTER(DividendActivity, year, StringToU16);
     DEF_SETTER(DividendActivity, record_date, StringToDate);
     DEF_SETTER(DividendActivity, dvd_total_value, NBSP_OR_SDOUBLE_FUNC);
@@ -1153,7 +1160,11 @@ tl::expected<DividendActivities, Error> BvbScraper::ParseDividendActivities(
         return this->IsValidNumber(val);
     };
     TableValueValidator isValidDate = [this](const std::string& val) -> bool {
-        return this->IsValidDate(val);
+        return this->IsValidDate(val, false);
+    };
+    TableValueValidator isValidPaymentDate =
+        [this](const std::string& val) -> bool {
+        return this->IsValidDate(val, true);
     };
 
     AddEntryToTable<DividendActivities, DividendActivity> addFunc =
@@ -1167,7 +1178,7 @@ tl::expected<DividendActivities, Error> BvbScraper::ParseDividendActivities(
         {"Dividend", isValidDvd, dvd_value},
         {"DIVY", isValidDvdYield, dvd_yield},
         {"Ex-dividend Date", isValidDate, ex_dvd_date},
-        {"Payment date", isValidDate, payment_date},
+        {"Payment date", isValidPaymentDate, payment_date},
         {"Year", isValidYear, year},
         {"Registration Date", isValidDate, record_date},
         {"Dividends Total", isValidDvdTotal, dvd_total_value},

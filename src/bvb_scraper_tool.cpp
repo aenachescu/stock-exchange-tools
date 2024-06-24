@@ -45,7 +45,7 @@ int cmd_print_dividends()
             i.symbol,
             i.name,
             double_to_string(i.dvd_value, 6),
-            double_to_string(i.dvd_total_value, 2),
+            double_to_string(i.dvd_total_value, 2, true),
             double_to_string(i.dvd_yield, 2),
             std::to_string(i.year),
             date_to_string(i.ex_dvd_date),
