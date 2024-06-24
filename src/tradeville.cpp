@@ -128,6 +128,37 @@ tl::expected<Activities, Error> Tradeville::GetActivity(
     return ParseActivity(*json);
 }
 
+Error Tradeville::SavePortfolioToFile()
+{
+    static constexpr const char* kRequest =
+        "{ \"cmd\": \"Portfolio\", \"prm\": { \"data\": \"null\" } } ";
+
+    Error err = InitConnection();
+    if (err != Error::NoError) {
+        return err;
+    }
+
+    auto rsp = m_wsConn.SendRequest(kRequest);
+    if (! rsp) {
+        return rsp.error();
+    }
+
+    auto json = ValidatePortfolioJson(*rsp);
+    if (! json) {
+        return json.error();
+    }
+
+    std::ofstream file("tradeville_portfolio.txt");
+    if (! file) {
+        return Error::FileNotFound;
+    }
+
+    file << *rsp;
+    file.close();
+
+    return Error::NoError;
+}
+
 Error Tradeville::SaveActivityToFile(uint64_t year)
 {
     Error err = InitConnection();

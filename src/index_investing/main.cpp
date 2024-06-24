@@ -574,6 +574,23 @@ int CmdSaveTradevilleActivity(const Config& cfg, uint64_t year)
     return 0;
 }
 
+int CmdSaveTradevillePortfolio(const Config& cfg)
+{
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+
+    Error err = tv.SavePortfolioToFile();
+    if (err != Error::NoError) {
+        std::cout << "Failed to save Tradeville portfolio to file: "
+                  << magic_enum::enum_name(err) << std::endl;
+        return -1;
+    }
+
+    std::cout << "Successfully saved Tradeville portfolio to file!"
+              << std::endl;
+
+    return 0;
+}
+
 void CmdPrintHelp()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -593,7 +610,9 @@ void CmdPrintHelp()
                  "stocks, this method can be used if you want to invest some "
                  "money and you want to replicate a specific index."
               << std::endl;
-    std::cout << "--dtvs <year> - save the activity from tradeville to file."
+    std::cout << "--stva <year> - save the activity from tradeville to file."
+              << std::endl;
+    std::cout << "--stvp - save the portfolio from tradeville to file."
               << std::endl;
 }
 
@@ -730,7 +749,7 @@ int main(int argc, char* argv[])
         }
 
         return CmdPrintIndexReplication(cfg, ammount, addPortfolioValue);
-    } else if (strcmp(argv[1], "--dtvs") == 0) {
+    } else if (strcmp(argv[1], "--stva") == 0) {
         if (argc != 3) {
             std::cout << "no year provided" << std::endl;
             return -1;
@@ -738,6 +757,8 @@ int main(int argc, char* argv[])
 
         uint64_t year = std::stoull(argv[2]);
         return CmdSaveTradevilleActivity(cfg, year);
+    } else if (strcmp(argv[1], "--stvp") == 0) {
+        return CmdSaveTradevillePortfolio(cfg);
     } else if (strcmp(argv[1], "--ui") == 0) {
         TerminalUi tui(cfg);
 
