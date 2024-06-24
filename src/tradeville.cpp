@@ -2,6 +2,7 @@
 
 #include "string_utils.h"
 
+#include <fstream>
 #include <iomanip>
 #include <magic_enum.hpp>
 
@@ -125,6 +126,39 @@ tl::expected<Activities, Error> Tradeville::GetActivity(
     }
 
     return ParseActivity(*json);
+}
+
+Error Tradeville::SaveActivityToFile(uint64_t year)
+{
+    Error err = InitConnection();
+    if (err != Error::NoError) {
+        return err;
+    }
+
+    std::string req = GetActivityRequest(std::nullopt, year, year);
+    auto rsp        = m_wsConn.SendRequest(req);
+    if (! rsp) {
+        return rsp.error();
+    }
+
+    auto json = ValidateActivityJson(*rsp, std::nullopt, year, year);
+    if (! json) {
+        return json.error();
+    }
+
+    std::string fileName = "tradeville_activity_";
+    fileName += std::to_string(year);
+    fileName += ".txt";
+
+    std::ofstream file(fileName);
+    if (! file) {
+        return Error::FileNotFound;
+    }
+
+    file << *rsp;
+    file.close();
+
+    return Error::NoError;
 }
 
 Error Tradeville::InitConnection()

@@ -561,6 +561,22 @@ int CmdPrintIndexReplication(
     return 0;
 }
 
+int CmdSaveTradevilleActivity(const Config& cfg, uint64_t year)
+{
+    Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+
+    Error err = tv.SaveActivityToFile(year);
+    if (err != Error::NoError) {
+        std::cout << "Failed to save Tradeville activity to file: "
+                  << magic_enum::enum_name(err) << std::endl;
+        return -1;
+    }
+
+    std::cout << "Successfully saved Tradeville activity to file!" << std::endl;
+
+    return 0;
+}
+
 void CmdPrintHelp()
 {
     std::cout << "Supported commands:" << std::endl;
@@ -579,6 +595,8 @@ void CmdPrintHelp()
                  "with '+' then that ammount will be added to current value of "
                  "stocks, this method can be used if you want to invest some "
                  "money and you want to replicate a specific index."
+              << std::endl;
+    std::cout << "--dtvs <year> - save the activity from tradeville to file."
               << std::endl;
 }
 
@@ -715,6 +733,14 @@ int main(int argc, char* argv[])
         }
 
         return CmdPrintIndexReplication(cfg, ammount, addPortfolioValue);
+    } else if (strcmp(argv[1], "--dtvs") == 0) {
+        if (argc != 3) {
+            std::cout << "no year provided" << std::endl;
+            return -1;
+        }
+
+        uint64_t year = std::stoull(argv[2]);
+        return CmdSaveTradevilleActivity(cfg, year);
     } else if (strcmp(argv[1], "--ui") == 0) {
         TerminalUi tui(cfg);
 

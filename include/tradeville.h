@@ -92,6 +92,8 @@ public:
         uint64_t startYear,
         uint64_t endYear);
 
+    Error SaveActivityToFile(uint64_t year);
+
 private:
     Error InitConnection();
 
