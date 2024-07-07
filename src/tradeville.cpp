@@ -934,6 +934,8 @@ Error Tradeville::ParseActivityPrice(
                     static_cast<double>(priceArray[i].GetUint64());
             } else if (priceArray[i].IsDouble() == true) {
                 activities[i].price = priceArray[i].GetDouble();
+            } else if (priceArray[i].IsNull() == true) {
+                activities[i].price = 0.0;
             } else {
                 return Error::TradevilleInvalidPrice;
             }
