@@ -731,10 +731,10 @@ tl::expected<HttpResponse, Error> BvbScraper::SelectAdjustmentsHistory(
 
     PostData postData = {
         {"ctl00$ctl00$MasterScriptManager",
-         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$upMob|ctl00$"
-         "ctl00$body$rightColumnPlaceHolder$TabsControl$lb4"},
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$uptabslist|ctl00$"
+         "ctl00$body$rightColumnPlaceHolder$TabsControl$lb5"},
         {"__EVENTTARGET",
-         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$lb4"},
+         "ctl00$ctl00$body$rightColumnPlaceHolder$TabsControl$lb5"},
         {"__EVENTARGUMENT", reqData.eventArg},
         {"__LASTFOCUS", reqData.lastFocus},
         {"__VIEWSTATE", reqData.viewState},
