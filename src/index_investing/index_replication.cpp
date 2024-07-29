@@ -193,7 +193,7 @@ Error IndexReplication::FillActivityData(const Activities& activities)
 
             sharesPerSymbol[activity.symbol] += shares;
         } else if (activity.type == ActivityType::Dividend) {
-            entry.dividends += (activity.cash_ammount - activity.commission);
+            entry.dividends += activity.cash_ammount;
         }
     }
 
