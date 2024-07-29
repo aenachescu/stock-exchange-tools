@@ -1262,20 +1262,17 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
     static constexpr std::string_view kTableId = "gvIndexPerformance";
 
     DEF_SETTER(IndexPerformance, name, NO_FUNC);
-    DEF_SETTER(IndexPerformance, today, std::stod);
-    DEF_SETTER(IndexPerformance, one_week, std::stod);
-    DEF_SETTER(IndexPerformance, one_month, std::stod);
-    DEF_SETTER(IndexPerformance, six_months, std::stod);
-    DEF_SETTER(IndexPerformance, one_year, std::stod);
+    DEF_SETTER(IndexPerformance, today, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(IndexPerformance, one_week, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(IndexPerformance, one_month, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(IndexPerformance, six_months, NBSP_OR_DOUBLE_FUNC);
+    DEF_SETTER(IndexPerformance, one_year, NBSP_OR_DOUBLE_FUNC);
     DEF_SETTER(IndexPerformance, year_to_date, NBSP_OR_DOUBLE_FUNC);
 
     TableValueValidator isValidName = [this](const std::string& val) -> bool {
         return this->IsValidIndexName(val);
     };
     TableValueValidator isValidValue = [this](const std::string& val) -> bool {
-        return this->IsValidDouble(val, 2, true, false, false);
-    };
-    TableValueValidator isValidYtd = [this](const std::string& val) -> bool {
         return this->IsValidDouble(val, 2, true, false, true);
     };
 
@@ -1291,7 +1288,7 @@ tl::expected<IndexesPerformance, Error> BvbScraper::ParseIndexesPerformance(
         {"1 month (%)", isValidValue, one_month},
         {"6 months (%)", isValidValue, six_months},
         {"1 year (%)", isValidValue, one_year},
-        {"YTD (%)", isValidYtd, year_to_date},
+        {"YTD (%)", isValidValue, year_to_date},
     };
 
     return ParseTable<IndexesPerformance, IndexPerformance>(
