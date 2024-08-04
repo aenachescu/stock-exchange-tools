@@ -115,10 +115,17 @@ int CmdPrintPortfolio(const Config& cfg)
     std::cout << "Value by asset and currency:" << std::endl;
     auto assetAndCurrencyValue = portfolio->GetValueByAssetAndCurrency();
     for (const auto& asset : assetAndCurrencyValue) {
+        bool first = true;
         std::cout << magic_enum::enum_name(asset.first) << ": ";
         for (const auto& currency : asset.second) {
+            if (first == true) {
+                first = false;
+            } else {
+                std::cout << ", ";
+            }
+
             std::cout << double_to_string(currency.second) << " "
-                      << magic_enum::enum_name(currency.first) << " ";
+                      << magic_enum::enum_name(currency.first);
         }
         std::cout << std::endl;
     }
