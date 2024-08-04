@@ -79,7 +79,10 @@ void PrintAssetAndCurrencyValue(
     std::cout << std::endl;
 }
 
-int CmdPrintPortfolio(const Config& cfg)
+int CmdPrintPortfolio(
+    const Config& cfg,
+    const Portfolio::SortFields& sortFields,
+    const Portfolio::SortEstDvdFields& sortEstDvdFields)
 {
     ColorizedTable table, estDvdTable;
     size_t id = 1;
@@ -115,6 +118,9 @@ int CmdPrintPortfolio(const Config& cfg)
                   << magic_enum::enum_name(err) << std::endl;
         return -1;
     }
+
+    portfolio->Sort(sortFields);
+    portfolio->Sort(sortEstDvdFields);
 
     table.reserve(portfolio->entries.size() + 1);
     table.emplace_back(std::vector<ColorizedString>{
@@ -698,7 +704,11 @@ int CmdSaveTradevillePortfolio(const Config& cfg)
 void CmdPrintHelp()
 {
     std::cout << "Supported commands:" << std::endl;
-    std::cout << "--ptvp - prints the portfolio from tradeville" << std::endl;
+    std::cout << "--ptvp - prints the portfolio from tradeville. Use --sort "
+                 "q,ap,mp,c,v,d,p,pp,tr,trp,ccy,a in order to sort portfolio "
+                 "entries. Use --sort-est-dvd d,s,ed,rd,pd in order to sort "
+                 "estimated dividends entries."
+              << std::endl;
     std::cout << "--ptva - prints the activity from tradeville" << std::endl;
     std::cout << "--ptvd <start_year> <end_year> - prints the dividend from "
                  "tradeville activity. If only start_year is set then it "
@@ -797,6 +807,100 @@ bool ParseActivityFilters(
     return true;
 }
 
+int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
+{
+#define TOKEN_TO_ENUM(t, e)                                                    \
+    if (token == t) {                                                          \
+        fields.push_back(std::make_pair(Portfolio::SortBy::e, sortOrder));     \
+        continue;                                                              \
+    }
+
+    auto tokens = split_string(str, ',');
+    fields.reserve(tokens.size());
+
+    for (auto& token : tokens) {
+        if (token.empty() == true) {
+            std::cout << "empty SortBy token" << std::endl;
+            return -1;
+        }
+
+        auto sortOrder = std::islower(token[0])
+            ? Portfolio::SortOrder::Ascending
+            : Portfolio::SortOrder::Descending;
+
+        std::transform(
+            token.begin(),
+            token.end(),
+            token.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+
+        TOKEN_TO_ENUM("q", Quantity);
+        TOKEN_TO_ENUM("ap", AvgPrice);
+        TOKEN_TO_ENUM("mp", MarketPrice);
+        TOKEN_TO_ENUM("c", Cost);
+        TOKEN_TO_ENUM("v", Value);
+        TOKEN_TO_ENUM("d", Dvd);
+        TOKEN_TO_ENUM("p", Profit);
+        TOKEN_TO_ENUM("pp", ProfitPercentage);
+        TOKEN_TO_ENUM("tr", TotalReturn);
+        TOKEN_TO_ENUM("trp", TotalReturnPercentage);
+        TOKEN_TO_ENUM("ccy", Currency);
+        TOKEN_TO_ENUM("a", Asset);
+
+        std::cout << "unrecognized SortBy token: " << token << std::endl;
+        return -1;
+    }
+
+#undef TOKEN_TO_ENUM
+
+    return 0;
+}
+
+int ParsePortfolioSortEstDvdBy(
+    Portfolio::SortEstDvdFields& fields,
+    const std::string& str)
+{
+#define TOKEN_TO_ENUM(t, e)                                                    \
+    if (token == t) {                                                          \
+        fields.push_back(                                                      \
+            std::make_pair(Portfolio::SortEstDvdBy::e, sortOrder));            \
+        continue;                                                              \
+    }
+
+    auto tokens = split_string(str, ',');
+    fields.reserve(tokens.size());
+
+    for (auto& token : tokens) {
+        if (token.empty() == true) {
+            std::cout << "empty SortEstDvdBy token" << std::endl;
+            return -1;
+        }
+
+        auto sortOrder = std::islower(token[0])
+            ? Portfolio::SortOrder::Ascending
+            : Portfolio::SortOrder::Descending;
+
+        std::transform(
+            token.begin(),
+            token.end(),
+            token.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+
+        TOKEN_TO_ENUM("d", Dividend);
+        TOKEN_TO_ENUM("s", Shares);
+        TOKEN_TO_ENUM("ed", ExDate);
+        TOKEN_TO_ENUM("rd", RecordDate);
+        TOKEN_TO_ENUM("pd", PaymentDate);
+
+        std::cout << "unrecognized SortEstDvdBy token: " << token << std::endl;
+        return -1;
+    }
+
+#undef TOKEN_TO_ENUM
+
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     Config cfg;
@@ -817,7 +921,38 @@ int main(int argc, char* argv[])
     }
 
     if (strcmp(argv[1], "--ptvp") == 0) {
-        return CmdPrintPortfolio(cfg);
+        Portfolio::SortFields sortFields;
+        Portfolio::SortEstDvdFields sortEstDvdFields;
+
+        for (int i = 2; i < argc; i++) {
+            if (strcmp(argv[i], "--sort") == 0) {
+                if (i + 1 >= argc) {
+                    std::cout << "no sort fields provided!" << std::endl;
+                    return -1;
+                }
+
+                int res = ParsePortfolioSortBy(sortFields, argv[i + 1]);
+                if (res < 0) {
+                    return res;
+                }
+            }
+
+            if (strcmp(argv[i], "--sort-est-dvd") == 0) {
+                if (i + 1 >= argc) {
+                    std::cout << "no sort est dvd fields provided!"
+                              << std::endl;
+                    return -1;
+                }
+
+                int res =
+                    ParsePortfolioSortEstDvdBy(sortEstDvdFields, argv[i + 1]);
+                if (res < 0) {
+                    return res;
+                }
+            }
+        }
+
+        return CmdPrintPortfolio(cfg, sortFields, sortEstDvdFields);
     } else if (strcmp(argv[1], "--ptva") == 0) {
         ActivityFilters filters;
         if (ParseActivityFilters(argv, argc, 2, filters) == false) {

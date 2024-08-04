@@ -54,6 +54,40 @@ using Activities = std::vector<Activity>;
 
 struct Portfolio
 {
+    enum class SortBy
+    {
+        Quantity,              // q
+        AvgPrice,              // ap
+        MarketPrice,           // mp
+        Cost,                  // c
+        Value,                 // v
+        Dvd,                   // d
+        Profit,                // p
+        ProfitPercentage,      // pp
+        TotalReturn,           // tr
+        TotalReturnPercentage, // trp
+        Currency,              // ccy
+        Asset,                 // a
+    };
+
+    enum class SortEstDvdBy
+    {
+        Dividend,    // d
+        Shares,      // s
+        ExDate,      // ed
+        RecordDate,  // rd
+        PaymentDate, // pd
+    };
+
+    enum class SortOrder
+    {
+        Ascending,
+        Descending
+    };
+
+    using SortFields       = std::vector<std::pair<SortBy, SortOrder>>;
+    using SortEstDvdFields = std::vector<std::pair<SortEstDvdBy, SortOrder>>;
+
     struct Entry
     {
         std::string account;
@@ -98,6 +132,9 @@ struct Portfolio
     Error FillStatistics(
         const Activities& activities,
         const DividendActivities& dvdActivities);
+
+    void Sort(const SortFields& fields);
+    void Sort(const SortEstDvdFields& fields);
 
     std::vector<Entry> entries;
     std::vector<EstimatedDividend> estimated_dividends;

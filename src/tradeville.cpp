@@ -151,8 +151,17 @@ Error Portfolio::FillStatistics(
         entry.profit_loss  = entry.value - entry.cost;
         entry.total_return = entry.profit_loss + entry.dividends;
 
-        entry.profit_loss_percentage  = entry.profit_loss / entry.cost * 100.0;
-        entry.total_return_percentage = entry.total_return / entry.cost * 100.0;
+        if (entry.cost == 0.0) {
+            entry.profit_loss_percentage =
+                std::numeric_limits<double>::infinity();
+            entry.total_return_percentage =
+                std::numeric_limits<double>::infinity();
+        } else {
+            entry.profit_loss_percentage =
+                entry.profit_loss / entry.cost * 100.0;
+            entry.total_return_percentage =
+                entry.total_return / entry.cost * 100.0;
+        }
     }
 
     err = FillEstimatedDividends(activities, dvdActivities);
@@ -161,6 +170,84 @@ Error Portfolio::FillStatistics(
     }
 
     return Error::NoError;
+}
+
+void Portfolio::Sort(const SortFields& fields)
+{
+    if (fields.empty() == true) {
+        return;
+    }
+
+#define SORT_CASE(e, m)                                                        \
+    case SortBy::e:                                                            \
+        if (a.m == b.m) {                                                      \
+            continue;                                                          \
+        } else {                                                               \
+            return f.second == SortOrder::Ascending ? a.m < b.m : a.m > b.m;   \
+        }
+
+    auto comp = [&](const Entry& a, const Entry& b) -> bool {
+        for (const auto& f : fields) {
+            switch (f.first) {
+                SORT_CASE(Quantity, quantity)
+                SORT_CASE(AvgPrice, avg_price)
+                SORT_CASE(MarketPrice, market_price)
+                SORT_CASE(Cost, cost)
+                SORT_CASE(Value, value)
+                SORT_CASE(Dvd, dividends)
+                SORT_CASE(Profit, profit_loss)
+                SORT_CASE(ProfitPercentage, profit_loss_percentage)
+                SORT_CASE(TotalReturn, total_return)
+                SORT_CASE(TotalReturnPercentage, total_return_percentage)
+                SORT_CASE(Currency, currency)
+                SORT_CASE(Asset, asset)
+            default:
+                continue;
+            }
+        }
+
+        return false;
+    };
+
+#undef SORT_CASE
+
+    std::sort(entries.begin(), entries.end(), comp);
+}
+
+void Portfolio::Sort(const SortEstDvdFields& fields)
+{
+    if (fields.empty() == true) {
+        return;
+    }
+
+#define SORT_CASE(e, m)                                                        \
+    case SortEstDvdBy::e:                                                      \
+        if (a.m == b.m) {                                                      \
+            continue;                                                          \
+        } else {                                                               \
+            return f.second == SortOrder::Ascending ? a.m < b.m : a.m > b.m;   \
+        }
+
+    auto comp = [&](const EstimatedDividend& a,
+                    const EstimatedDividend& b) -> bool {
+        for (const auto& f : fields) {
+            switch (f.first) {
+                SORT_CASE(Dividend, estimated_dvd)
+                SORT_CASE(Shares, estimated_shares)
+                SORT_CASE(ExDate, ex_date)
+                SORT_CASE(RecordDate, record_date)
+                SORT_CASE(PaymentDate, payment_date)
+            default:
+                continue;
+            }
+        }
+
+        return false;
+    };
+
+#undef SORT_CASE
+
+    std::sort(estimated_dividends.begin(), estimated_dividends.end(), comp);
 }
 
 void Portfolio::FillDividends(const Activities& activities)

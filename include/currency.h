@@ -1,14 +1,15 @@
 #ifndef STOCK_EXCHANGE_TOOLS_CURRENCY_H
 #define STOCK_EXCHANGE_TOOLS_CURRENCY_H
 
+#include <cstdint>
 #include <map>
 
-enum class Currency
+enum class Currency : std::uint8_t
 {
     Unknown,
-    Ron,
     Usd,
     Eur,
+    Ron,
 };
 
 using ExchangeRates = std::map<Currency, double>;
