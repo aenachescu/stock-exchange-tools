@@ -76,7 +76,12 @@ struct Portfolio
         Currency currency,
         const ExchangeRates& rates) const;
     CurrencyValue GetValueByCurrency() const;
+
     AssetAndCurrencyValue GetValueByAssetAndCurrency() const;
+    AssetAndCurrencyValue GetCostByAssetAndCurrency() const;
+    AssetAndCurrencyValue GetDvdByAssetAndCurrency() const;
+    AssetAndCurrencyValue GetProfitByAssetAndCurrency() const;
+    AssetAndCurrencyValue GetTotalReturnByAssetAndCurrency() const;
 
     Error FillStatistics(const Activities& activities);
 

@@ -50,6 +50,35 @@ bool IsValidConfig(const Config& cfg)
     return true;
 }
 
+void PrintAssetAndCurrencyValue(
+    const AssetAndCurrencyValue& val,
+    const char* type)
+{
+    std::cout << std::endl;
+    std::cout << type << " by asset and currency:" << std::endl;
+
+    for (const auto& asset : val) {
+        bool first = true;
+
+        std::cout << magic_enum::enum_name(asset.first) << ": ";
+
+        for (const auto& currency : asset.second) {
+            if (first == true) {
+                first = false;
+            } else {
+                std::cout << ", ";
+            }
+
+            std::cout << double_to_string(currency.second) << " "
+                      << magic_enum::enum_name(currency.first);
+        }
+
+        std::cout << std::endl;
+    }
+
+    std::cout << std::endl;
+}
+
 int CmdPrintPortfolio(const Config& cfg)
 {
     ColorizedTable table;
@@ -139,25 +168,19 @@ int CmdPrintPortfolio(const Config& cfg)
 
     print_table(table);
 
-    std::cout << std::endl;
-    std::cout << "Value by asset and currency:" << std::endl;
-    auto assetAndCurrencyValue = portfolio->GetValueByAssetAndCurrency();
-    for (const auto& asset : assetAndCurrencyValue) {
-        bool first = true;
-        std::cout << magic_enum::enum_name(asset.first) << ": ";
-        for (const auto& currency : asset.second) {
-            if (first == true) {
-                first = false;
-            } else {
-                std::cout << ", ";
-            }
-
-            std::cout << double_to_string(currency.second) << " "
-                      << magic_enum::enum_name(currency.first);
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
+    PrintAssetAndCurrencyValue(portfolio->GetCostByAssetAndCurrency(), "Cost");
+    PrintAssetAndCurrencyValue(
+        portfolio->GetValueByAssetAndCurrency(),
+        "Value");
+    PrintAssetAndCurrencyValue(
+        portfolio->GetDvdByAssetAndCurrency(),
+        "Dividends");
+    PrintAssetAndCurrencyValue(
+        portfolio->GetProfitByAssetAndCurrency(),
+        "Profit");
+    PrintAssetAndCurrencyValue(
+        portfolio->GetTotalReturnByAssetAndCurrency(),
+        "Total return");
 
     return 0;
 }

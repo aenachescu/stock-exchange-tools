@@ -62,6 +62,69 @@ AssetAndCurrencyValue Portfolio::GetValueByAssetAndCurrency() const
     return res;
 }
 
+AssetAndCurrencyValue Portfolio::GetCostByAssetAndCurrency() const
+{
+    AssetAndCurrencyValue res;
+
+    for (const auto& e : entries) {
+        auto assetIt    = res.emplace(e.asset, CurrencyValue{});
+        auto currencyIt = assetIt.first->second.emplace(e.currency, e.cost);
+        if (currencyIt.second == false) {
+            currencyIt.first->second += e.cost;
+        }
+    }
+
+    return res;
+}
+
+AssetAndCurrencyValue Portfolio::GetDvdByAssetAndCurrency() const
+{
+    AssetAndCurrencyValue res;
+
+    for (const auto& e : entries) {
+        auto assetIt = res.emplace(e.asset, CurrencyValue{});
+        auto currencyIt =
+            assetIt.first->second.emplace(e.currency, e.dividends);
+        if (currencyIt.second == false) {
+            currencyIt.first->second += e.dividends;
+        }
+    }
+
+    return res;
+}
+
+AssetAndCurrencyValue Portfolio::GetProfitByAssetAndCurrency() const
+{
+    AssetAndCurrencyValue res;
+
+    for (const auto& e : entries) {
+        auto assetIt = res.emplace(e.asset, CurrencyValue{});
+        auto currencyIt =
+            assetIt.first->second.emplace(e.currency, e.profit_loss);
+        if (currencyIt.second == false) {
+            currencyIt.first->second += e.profit_loss;
+        }
+    }
+
+    return res;
+}
+
+AssetAndCurrencyValue Portfolio::GetTotalReturnByAssetAndCurrency() const
+{
+    AssetAndCurrencyValue res;
+
+    for (const auto& e : entries) {
+        auto assetIt = res.emplace(e.asset, CurrencyValue{});
+        auto currencyIt =
+            assetIt.first->second.emplace(e.currency, e.total_return);
+        if (currencyIt.second == false) {
+            currencyIt.first->second += e.total_return;
+        }
+    }
+
+    return res;
+}
+
 Error Portfolio::FillStatistics(const Activities& activities)
 {
     FillDividends(activities);
