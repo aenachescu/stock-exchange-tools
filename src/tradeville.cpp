@@ -81,6 +81,29 @@ AssetAndCurrencyValue Portfolio::GetValueByAssetAndCurrency() const
     return res;
 }
 
+Error Portfolio::FillStatistics()
+{
+    for (auto& entry : entries) {
+        if (entry.asset == AssetType::Money) {
+            entry.avg_price = 1.0;
+        }
+
+        double quantity = 0.0;
+        if (std::holds_alternative<uint64_t>(entry.quantity) == true) {
+            quantity = std::get<uint64_t>(entry.quantity);
+        } else {
+            quantity = std::get<double>(entry.quantity);
+        }
+
+        entry.cost                   = entry.avg_price * quantity;
+        entry.value                  = entry.market_price * quantity;
+        entry.profit_loss            = entry.value - entry.cost;
+        entry.profit_loss_percentage = entry.profit_loss / entry.cost * 100.0;
+    }
+
+    return Error::NoError;
+}
+
 tl::expected<Portfolio, Error> Tradeville::GetPortfolio()
 {
     static constexpr const char* kRequest =

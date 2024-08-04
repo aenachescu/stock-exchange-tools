@@ -52,7 +52,7 @@ bool IsValidConfig(const Config& cfg)
 
 int CmdPrintPortfolio(const Config& cfg)
 {
-    Table table;
+    ColorizedTable table;
     size_t id = 1;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
 
@@ -63,8 +63,15 @@ int CmdPrintPortfolio(const Config& cfg)
         return -1;
     }
 
+    auto err = portfolio->FillStatistics();
+    if (err != Error::NoError) {
+        std::cout << "Failed to fill portfolio statistics: "
+                  << magic_enum::enum_name(err) << std::endl;
+        return -1;
+    }
+
     table.reserve(portfolio->entries.size() + 1);
-    table.emplace_back(std::vector<std::string>{
+    table.emplace_back(std::vector<ColorizedString>{
         "#",
         "Account",
         "Symbol",
@@ -80,29 +87,31 @@ int CmdPrintPortfolio(const Config& cfg)
     });
 
     for (const auto& i : portfolio->entries) {
-        double quantity = 0.0;
-        if (std::holds_alternative<uint64_t>(i.quantity) == true) {
-            quantity = std::get<uint64_t>(i.quantity);
+        std::string plp;
+        Color profit_color = Color::Green;
+
+        if (std::isnan(i.profit_loss_percentage) ||
+            std::isinf(i.profit_loss_percentage)) {
+            plp = "-";
         } else {
-            quantity = std::get<double>(i.quantity);
+            plp = double_to_string(i.profit_loss_percentage);
         }
 
-        double cost  = i.avg_price * quantity;
-        double value = i.market_price * quantity;
-        double pl    = value - cost;
-        double plp   = pl / cost * 100.0;
+        if (i.profit_loss < 0.0) {
+            profit_color = Color::Red;
+        }
 
-        table.emplace_back(std::vector<std::string>{
+        table.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.account,
             i.symbol,
             quantity_to_string(i.quantity),
             double_to_string(i.avg_price, 4),
             double_to_string(i.market_price, 4),
-            double_to_string(cost),
-            double_to_string(value),
-            double_to_string(pl),
-            double_to_string(plp),
+            double_to_string(i.cost),
+            double_to_string(i.value),
+            ColorizedString{double_to_string(i.profit_loss), profit_color},
+            ColorizedString{plp, profit_color},
             std::string{magic_enum::enum_name(i.currency)},
             std::string{magic_enum::enum_name(i.asset)},
         });

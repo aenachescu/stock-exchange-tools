@@ -38,6 +38,11 @@ struct Portfolio
         double market_price = 0.0;
         Currency currency   = Currency::Unknown;
         AssetType asset     = AssetType::Unknown;
+
+        double cost                   = 0.0;
+        double value                  = 0.0;
+        double profit_loss            = 0.0;
+        double profit_loss_percentage = 0.0;
     };
 
     tl::expected<AssetValue, Error> GetValueByAsset(
@@ -45,6 +50,8 @@ struct Portfolio
         const ExchangeRates& rates) const;
     CurrencyValue GetValueByCurrency() const;
     AssetAndCurrencyValue GetValueByAssetAndCurrency() const;
+
+    Error FillStatistics();
 
     std::vector<Entry> entries;
 };
