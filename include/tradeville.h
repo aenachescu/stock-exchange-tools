@@ -7,6 +7,7 @@
 #include "error.h"
 #include "noncopyable.h"
 #include "nonmovable.h"
+#include "stock_index.h"
 #include "websocket_connection.h"
 
 #include <expected.hpp>
@@ -72,6 +73,17 @@ struct Portfolio
         double total_return_percentage = 0.0;
     };
 
+    struct EstimatedDividend
+    {
+        std::string symbol;
+        double estimated_dvd      = 0.0;
+        double estimated_net_dvd  = 0.0;
+        uint64_t estimated_shares = 0;
+        std::chrono::year_month_day ex_date;
+        std::chrono::year_month_day record_date;
+        std::chrono::year_month_day payment_date;
+    };
+
     tl::expected<AssetValue, Error> GetValueByAsset(
         Currency currency,
         const ExchangeRates& rates) const;
@@ -83,12 +95,23 @@ struct Portfolio
     AssetAndCurrencyValue GetProfitByAssetAndCurrency() const;
     AssetAndCurrencyValue GetTotalReturnByAssetAndCurrency() const;
 
-    Error FillStatistics(const Activities& activities);
+    Error FillStatistics(
+        const Activities& activities,
+        const DividendActivities& dvdActivities);
 
     std::vector<Entry> entries;
+    std::vector<EstimatedDividend> estimated_dividends;
 
 private:
     void FillDividends(const Activities& activities);
+    Error FillEstimatedDividends(
+        const Activities& activities,
+        const DividendActivities& dvdActivities);
+    Error CalculateEstimateShares(
+        const Activities& activities,
+        const CompanySymbol& symbol,
+        const std::chrono::year_month_day& date,
+        uint64_t& shares);
 };
 
 class Tradeville : private noncopyable, private nonmovable {

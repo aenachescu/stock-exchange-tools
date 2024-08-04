@@ -81,11 +81,19 @@ void PrintAssetAndCurrencyValue(
 
 int CmdPrintPortfolio(const Config& cfg)
 {
-    ColorizedTable table;
+    ColorizedTable table, estDvdTable;
     size_t id = 1;
+    BvbScraper bvb;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
     uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
     uint64_t endYear   = get_current_year();
+
+    auto dvdActivities = bvb.GetDividendActivities();
+    if (! dvdActivities) {
+        std::cout << "Failed to get dividend activities from BVB: "
+                  << magic_enum::enum_name(dvdActivities.error()) << std::endl;
+        return -1;
+    }
 
     auto portfolio = tv.GetPortfolio();
     if (! portfolio) {
@@ -101,7 +109,7 @@ int CmdPrintPortfolio(const Config& cfg)
         return -1;
     }
 
-    auto err = portfolio->FillStatistics(*activities);
+    auto err = portfolio->FillStatistics(*activities, *dvdActivities);
     if (err != Error::NoError) {
         std::cout << "Failed to fill portfolio statistics: "
                   << magic_enum::enum_name(err) << std::endl;
@@ -167,6 +175,44 @@ int CmdPrintPortfolio(const Config& cfg)
     }
 
     print_table(table);
+
+    if (portfolio->estimated_dividends.empty() == false) {
+        const auto today = ymd_today();
+
+        estDvdTable.reserve(portfolio->estimated_dividends.size() + 1);
+        estDvdTable.emplace_back(std::vector<ColorizedString>{
+            "#",
+            "Symbol",
+            "Est. dvd",
+            "Est. net dvd",
+            "Est. shares",
+            "Ex date",
+            "Record date",
+            "Payment date",
+        });
+
+        id = 1;
+
+        for (const auto& i : portfolio->estimated_dividends) {
+            auto estDvdColor = today < i.ex_date ? Color::Red : Color::Green;
+
+            estDvdTable.emplace_back(std::vector<ColorizedString>{
+                std::to_string(id),
+                i.symbol,
+                ColorizedString{double_to_string(i.estimated_dvd), estDvdColor},
+                double_to_string(i.estimated_net_dvd),
+                std::to_string(i.estimated_shares),
+                date_to_string(i.ex_date),
+                date_to_string(i.record_date),
+                date_to_string(i.payment_date),
+            });
+
+            id++;
+        }
+
+        std::cout << std::endl;
+        print_table(estDvdTable);
+    }
 
     PrintAssetAndCurrencyValue(portfolio->GetCostByAssetAndCurrency(), "Cost");
     PrintAssetAndCurrencyValue(

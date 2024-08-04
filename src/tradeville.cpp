@@ -1,5 +1,6 @@
 #include "tradeville.h"
 
+#include "chrono_utils.h"
 #include "string_utils.h"
 
 #include <fstream>
@@ -125,8 +126,12 @@ AssetAndCurrencyValue Portfolio::GetTotalReturnByAssetAndCurrency() const
     return res;
 }
 
-Error Portfolio::FillStatistics(const Activities& activities)
+Error Portfolio::FillStatistics(
+    const Activities& activities,
+    const DividendActivities& dvdActivities)
 {
+    Error err = Error::NoError;
+
     FillDividends(activities);
 
     for (auto& entry : entries) {
@@ -150,6 +155,11 @@ Error Portfolio::FillStatistics(const Activities& activities)
         entry.total_return_percentage = entry.total_return / entry.cost * 100.0;
     }
 
+    err = FillEstimatedDividends(activities, dvdActivities);
+    if (err != Error::NoError) {
+        return err;
+    }
+
     return Error::NoError;
 }
 
@@ -167,6 +177,81 @@ void Portfolio::FillDividends(const Activities& activities)
             }
         }
     }
+}
+
+Error Portfolio::FillEstimatedDividends(
+    const Activities& activities,
+    const DividendActivities& dvdActivities)
+{
+    Error err        = Error::NoError;
+    const auto today = ymd_today();
+
+    for (const auto& entry : entries) {
+        auto dvdIt = std::find_if(
+            dvdActivities.begin(),
+            dvdActivities.end(),
+            [&](const DividendActivity& dvdActivity) {
+                return dvdActivity.symbol == entry.symbol &&
+                    today < dvdActivity.payment_date;
+            });
+        if (dvdIt == dvdActivities.end()) {
+            continue;
+        }
+
+        EstimatedDividend estDvd;
+
+        err = CalculateEstimateShares(
+            activities,
+            entry.symbol,
+            dvdIt->ex_dvd_date,
+            estDvd.estimated_shares);
+        if (err != Error::NoError) {
+            return err;
+        }
+
+        estDvd.symbol            = entry.symbol;
+        estDvd.estimated_dvd     = estDvd.estimated_shares * dvdIt->dvd_value;
+        estDvd.estimated_net_dvd = estDvd.estimated_dvd * 0.92;
+        estDvd.ex_date           = dvdIt->ex_dvd_date;
+        estDvd.record_date       = dvdIt->record_date;
+        estDvd.payment_date      = dvdIt->payment_date;
+
+        estimated_dividends.emplace_back(std::move(estDvd));
+    }
+
+    return err;
+}
+
+Error Portfolio::CalculateEstimateShares(
+    const Activities& activities,
+    const CompanySymbol& symbol,
+    const std::chrono::year_month_day& date,
+    uint64_t& shares)
+{
+    shares = 0;
+
+    for (const auto& activity : activities) {
+        if (activity.type != ActivityType::Buy &&
+            activity.type != ActivityType::AssetTransfer) {
+            continue;
+        }
+
+        if (activity.ymd >= date) {
+            continue;
+        }
+
+        if (activity.symbol != symbol) {
+            continue;
+        }
+
+        if (std::holds_alternative<uint64_t>(activity.quantity) == false) {
+            return Error::UnexpectedData;
+        }
+
+        shares += std::get<uint64_t>(activity.quantity);
+    }
+
+    return Error::NoError;
 }
 
 tl::expected<Portfolio, Error> Tradeville::GetPortfolio()
