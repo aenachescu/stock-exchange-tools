@@ -13,12 +13,7 @@ tl::expected<AssetValue, Error> Portfolio::GetValueByAsset(
     AssetValue res;
 
     for (const auto& e : entries) {
-        double val = 0.0;
-        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
-            val = std::get<uint64_t>(e.quantity) * e.market_price;
-        } else {
-            val = std::get<double>(e.quantity) * e.market_price;
-        }
+        double val = e.value;
 
         if (e.currency != currency) {
             auto rateIt = rates.find(e.currency);
@@ -43,16 +38,9 @@ CurrencyValue Portfolio::GetValueByCurrency() const
     CurrencyValue res;
 
     for (const auto& e : entries) {
-        double val = 0.0;
-        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
-            val = std::get<uint64_t>(e.quantity) * e.market_price;
-        } else {
-            val = std::get<double>(e.quantity) * e.market_price;
-        }
-
-        auto it = res.emplace(e.currency, val);
+        auto it = res.emplace(e.currency, e.value);
         if (it.second == false) {
-            it.first->second += val;
+            it.first->second += e.value;
         }
     }
 
@@ -64,25 +52,20 @@ AssetAndCurrencyValue Portfolio::GetValueByAssetAndCurrency() const
     AssetAndCurrencyValue res;
 
     for (const auto& e : entries) {
-        double val = 0.0;
-        if (std::holds_alternative<uint64_t>(e.quantity) == true) {
-            val = std::get<uint64_t>(e.quantity) * e.market_price;
-        } else {
-            val = std::get<double>(e.quantity) * e.market_price;
-        }
-
         auto assetIt    = res.emplace(e.asset, CurrencyValue{});
-        auto currencyIt = assetIt.first->second.emplace(e.currency, val);
+        auto currencyIt = assetIt.first->second.emplace(e.currency, e.value);
         if (currencyIt.second == false) {
-            currencyIt.first->second += val;
+            currencyIt.first->second += e.value;
         }
     }
 
     return res;
 }
 
-Error Portfolio::FillStatistics()
+Error Portfolio::FillStatistics(const Activities& activities)
 {
+    FillDividends(activities);
+
     for (auto& entry : entries) {
         if (entry.asset == AssetType::Money) {
             entry.avg_price = 1.0;
@@ -95,13 +78,32 @@ Error Portfolio::FillStatistics()
             quantity = std::get<double>(entry.quantity);
         }
 
-        entry.cost                   = entry.avg_price * quantity;
-        entry.value                  = entry.market_price * quantity;
-        entry.profit_loss            = entry.value - entry.cost;
-        entry.profit_loss_percentage = entry.profit_loss / entry.cost * 100.0;
+        entry.cost         = entry.avg_price * quantity;
+        entry.value        = entry.market_price * quantity;
+        entry.profit_loss  = entry.value - entry.cost;
+        entry.total_return = entry.profit_loss + entry.dividends;
+
+        entry.profit_loss_percentage  = entry.profit_loss / entry.cost * 100.0;
+        entry.total_return_percentage = entry.total_return / entry.cost * 100.0;
     }
 
     return Error::NoError;
+}
+
+void Portfolio::FillDividends(const Activities& activities)
+{
+    for (const auto& activity : activities) {
+        if (activity.type != ActivityType::Dividend) {
+            continue;
+        }
+
+        for (auto& entry : entries) {
+            if (entry.symbol == activity.symbol) {
+                entry.dividends += activity.cash_ammount;
+                break;
+            }
+        }
+    }
 }
 
 tl::expected<Portfolio, Error> Tradeville::GetPortfolio()

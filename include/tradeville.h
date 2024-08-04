@@ -27,35 +27,6 @@ using CurrencyValue         = std::map<Currency, double>;
 using AssetAndCurrencyValue = std::map<AssetType, CurrencyValue>;
 using Quantity              = std::variant<uint64_t, double>;
 
-struct Portfolio
-{
-    struct Entry
-    {
-        std::string account;
-        std::string symbol;
-        Quantity quantity   = 0ull;
-        double avg_price    = 0.0;
-        double market_price = 0.0;
-        Currency currency   = Currency::Unknown;
-        AssetType asset     = AssetType::Unknown;
-
-        double cost                   = 0.0;
-        double value                  = 0.0;
-        double profit_loss            = 0.0;
-        double profit_loss_percentage = 0.0;
-    };
-
-    tl::expected<AssetValue, Error> GetValueByAsset(
-        Currency currency,
-        const ExchangeRates& rates) const;
-    CurrencyValue GetValueByCurrency() const;
-    AssetAndCurrencyValue GetValueByAssetAndCurrency() const;
-
-    Error FillStatistics();
-
-    std::vector<Entry> entries;
-};
-
 struct Activity
 {
     std::chrono::year_month_day ymd;
@@ -79,6 +50,41 @@ struct Activity
 };
 
 using Activities = std::vector<Activity>;
+
+struct Portfolio
+{
+    struct Entry
+    {
+        std::string account;
+        std::string symbol;
+        Quantity quantity   = 0ull;
+        double avg_price    = 0.0;
+        double market_price = 0.0;
+        Currency currency   = Currency::Unknown;
+        AssetType asset     = AssetType::Unknown;
+
+        double cost                    = 0.0;
+        double value                   = 0.0;
+        double dividends               = 0.0;
+        double profit_loss             = 0.0;
+        double profit_loss_percentage  = 0.0;
+        double total_return            = 0.0;
+        double total_return_percentage = 0.0;
+    };
+
+    tl::expected<AssetValue, Error> GetValueByAsset(
+        Currency currency,
+        const ExchangeRates& rates) const;
+    CurrencyValue GetValueByCurrency() const;
+    AssetAndCurrencyValue GetValueByAssetAndCurrency() const;
+
+    Error FillStatistics(const Activities& activities);
+
+    std::vector<Entry> entries;
+
+private:
+    void FillDividends(const Activities& activities);
+};
 
 class Tradeville : private noncopyable, private nonmovable {
 private:

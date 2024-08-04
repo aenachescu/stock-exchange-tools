@@ -55,6 +55,8 @@ int CmdPrintPortfolio(const Config& cfg)
     ColorizedTable table;
     size_t id = 1;
     Tradeville tv(*cfg.GetTradevilleUser(), *cfg.GetTradevillePass());
+    uint64_t startYear = std::stoull(*cfg.GetTradevilleStartYear());
+    uint64_t endYear   = get_current_year();
 
     auto portfolio = tv.GetPortfolio();
     if (! portfolio) {
@@ -63,7 +65,14 @@ int CmdPrintPortfolio(const Config& cfg)
         return -1;
     }
 
-    auto err = portfolio->FillStatistics();
+    auto activities = tv.GetActivity(std::nullopt, startYear, endYear);
+    if (! activities) {
+        std::cout << "Failed to get activity: "
+                  << magic_enum::enum_name(activities.error()) << std::endl;
+        return -1;
+    }
+
+    auto err = portfolio->FillStatistics(*activities);
     if (err != Error::NoError) {
         std::cout << "Failed to fill portfolio statistics: "
                   << magic_enum::enum_name(err) << std::endl;
@@ -80,27 +89,26 @@ int CmdPrintPortfolio(const Config& cfg)
         "Market price",
         "Cost",
         "Value",
+        "Dvd",
         "P/L",
         "P/L %",
+        "TR",
+        "TR %",
         "Currency",
         "Asset",
     });
 
+    auto get_color = []<typename T>(T val) -> Color {
+        return val < 0 ? Color::Red : Color::Green;
+    };
+    auto get_percentage = [](double val) -> std::string {
+        if (std::isnan(val) || std::isinf(val)) {
+            return "-";
+        }
+        return double_to_string(val);
+    };
+
     for (const auto& i : portfolio->entries) {
-        std::string plp;
-        Color profit_color = Color::Green;
-
-        if (std::isnan(i.profit_loss_percentage) ||
-            std::isinf(i.profit_loss_percentage)) {
-            plp = "-";
-        } else {
-            plp = double_to_string(i.profit_loss_percentage);
-        }
-
-        if (i.profit_loss < 0.0) {
-            profit_color = Color::Red;
-        }
-
         table.emplace_back(std::vector<ColorizedString>{
             std::to_string(id),
             i.account,
@@ -110,8 +118,19 @@ int CmdPrintPortfolio(const Config& cfg)
             double_to_string(i.market_price, 4),
             double_to_string(i.cost),
             double_to_string(i.value),
-            ColorizedString{double_to_string(i.profit_loss), profit_color},
-            ColorizedString{plp, profit_color},
+            double_to_string(i.dividends),
+            ColorizedString{
+                double_to_string(i.profit_loss),
+                get_color(i.profit_loss)},
+            ColorizedString{
+                get_percentage(i.profit_loss_percentage),
+                get_color(i.profit_loss)},
+            ColorizedString{
+                double_to_string(i.total_return),
+                get_color(i.total_return)},
+            ColorizedString{
+                get_percentage(i.total_return_percentage),
+                get_color(i.total_return)},
             std::string{magic_enum::enum_name(i.currency)},
             std::string{magic_enum::enum_name(i.asset)},
         });
