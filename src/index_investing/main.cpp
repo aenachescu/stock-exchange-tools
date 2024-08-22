@@ -9,6 +9,8 @@
 
 #include <iostream>
 #include <magic_enum.hpp>
+#include <string_view>
+#include <unordered_map>
 
 bool IsValidConfig(const Config& cfg)
 {
@@ -809,11 +811,21 @@ bool ParseActivityFilters(
 
 int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
 {
-#define TOKEN_TO_ENUM(t, e)                                                    \
-    if (token == t) {                                                          \
-        fields.push_back(std::make_pair(Portfolio::SortBy::e, sortOrder));     \
-        continue;                                                              \
-    }
+    static const std::unordered_map<std::string_view, Portfolio::SortBy>
+        kFields = {
+            {"q", Portfolio::SortBy::Quantity},
+            {"ap", Portfolio::SortBy::AvgPrice},
+            {"mp", Portfolio::SortBy::MarketPrice},
+            {"c", Portfolio::SortBy::Cost},
+            {"v", Portfolio::SortBy::Value},
+            {"d", Portfolio::SortBy::Dvd},
+            {"p", Portfolio::SortBy::Profit},
+            {"pp", Portfolio::SortBy::ProfitPercentage},
+            {"tr", Portfolio::SortBy::TotalReturn},
+            {"trp", Portfolio::SortBy::TotalReturnPercentage},
+            {"ccy", Portfolio::SortBy::Currency},
+            {"a", Portfolio::SortBy::Asset},
+        };
 
     auto tokens = split_string(str, ',');
     fields.reserve(tokens.size());
@@ -834,24 +846,14 @@ int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
             token.begin(),
             [](unsigned char c) { return std::tolower(c); });
 
-        TOKEN_TO_ENUM("q", Quantity);
-        TOKEN_TO_ENUM("ap", AvgPrice);
-        TOKEN_TO_ENUM("mp", MarketPrice);
-        TOKEN_TO_ENUM("c", Cost);
-        TOKEN_TO_ENUM("v", Value);
-        TOKEN_TO_ENUM("d", Dvd);
-        TOKEN_TO_ENUM("p", Profit);
-        TOKEN_TO_ENUM("pp", ProfitPercentage);
-        TOKEN_TO_ENUM("tr", TotalReturn);
-        TOKEN_TO_ENUM("trp", TotalReturnPercentage);
-        TOKEN_TO_ENUM("ccy", Currency);
-        TOKEN_TO_ENUM("a", Asset);
+        auto it = kFields.find(token);
+        if (it == kFields.end()) {
+            std::cout << "unrecognized SortBy token: " << token << std::endl;
+            return -1;
+        }
 
-        std::cout << "unrecognized SortBy token: " << token << std::endl;
-        return -1;
+        fields.push_back(std::make_pair(it->second, sortOrder));
     }
-
-#undef TOKEN_TO_ENUM
 
     return 0;
 }
@@ -860,12 +862,14 @@ int ParsePortfolioSortEstDvdBy(
     Portfolio::SortEstDvdFields& fields,
     const std::string& str)
 {
-#define TOKEN_TO_ENUM(t, e)                                                    \
-    if (token == t) {                                                          \
-        fields.push_back(                                                      \
-            std::make_pair(Portfolio::SortEstDvdBy::e, sortOrder));            \
-        continue;                                                              \
-    }
+    static const std::unordered_map<std::string_view, Portfolio::SortEstDvdBy>
+        kFields = {
+            {"d", Portfolio::SortEstDvdBy::Dividend},
+            {"s", Portfolio::SortEstDvdBy::Shares},
+            {"ed", Portfolio::SortEstDvdBy::ExDate},
+            {"rd", Portfolio::SortEstDvdBy::RecordDate},
+            {"pd", Portfolio::SortEstDvdBy::PaymentDate},
+        };
 
     auto tokens = split_string(str, ',');
     fields.reserve(tokens.size());
@@ -886,17 +890,15 @@ int ParsePortfolioSortEstDvdBy(
             token.begin(),
             [](unsigned char c) { return std::tolower(c); });
 
-        TOKEN_TO_ENUM("d", Dividend);
-        TOKEN_TO_ENUM("s", Shares);
-        TOKEN_TO_ENUM("ed", ExDate);
-        TOKEN_TO_ENUM("rd", RecordDate);
-        TOKEN_TO_ENUM("pd", PaymentDate);
+        auto it = kFields.find(token);
+        if (it == kFields.end()) {
+            std::cout << "unrecognized SortEstDvdBy token: " << token
+                      << std::endl;
+            return -1;
+        }
 
-        std::cout << "unrecognized SortEstDvdBy token: " << token << std::endl;
-        return -1;
+        fields.push_back(std::make_pair(it->second, sortOrder));
     }
-
-#undef TOKEN_TO_ENUM
 
     return 0;
 }
