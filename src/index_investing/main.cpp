@@ -6,6 +6,7 @@
 #include "string_utils.h"
 #include "terminal_ui.h"
 #include "tradeville.h"
+#include "tradeville_activity_filters.h"
 
 #include <iostream>
 #include <magic_enum.hpp>
