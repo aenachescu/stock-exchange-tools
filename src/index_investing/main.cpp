@@ -710,7 +710,11 @@ void CmdPrintHelp()
     std::cout << "--ptvp - prints the portfolio from tradeville. Use --sort "
                  "q,ap,mp,c,v,d,p,pp,tr,trp,ccy,a in order to sort portfolio "
                  "entries. Use --sort-est-dvd d,s,ed,rd,pd in order to sort "
-                 "estimated dividends entries."
+                 "estimated dividends entries. If the sort field stats with "
+                 "capital letter then the field will be sorted in descending "
+                 "order, otherwise ascending order. For example, `--sort "
+                 "a,ccy,Tr` will sort the portfolio by asset type and currency "
+                 "in ascending order and by total return in descending order."
               << std::endl;
     std::cout << "--ptva - prints the activity from tradeville. Use --type, "
                  "--year, --symbol, --currency in order to filter the activity."
