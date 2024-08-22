@@ -711,7 +711,9 @@ void CmdPrintHelp()
                  "entries. Use --sort-est-dvd d,s,ed,rd,pd in order to sort "
                  "estimated dividends entries."
               << std::endl;
-    std::cout << "--ptva - prints the activity from tradeville" << std::endl;
+    std::cout << "--ptva - prints the activity from tradeville. Use --type, "
+                 "--year, --symbol, --currency in order to filter the activity."
+              << std::endl;
     std::cout << "--ptvd <start_year> <end_year> - prints the dividend from "
                  "tradeville activity. If only start_year is set then it "
                  "prints the dividends just for that year. If both are set "
