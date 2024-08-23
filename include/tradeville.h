@@ -31,7 +31,7 @@ struct Activity
 {
     std::chrono::year_month_day ymd;
     std::string date;
-    std::string symbol;
+    CompanySymbol symbol;
     std::string note;
     std::string market;
     std::string transaction_id;
@@ -90,7 +90,7 @@ struct Portfolio
     struct Entry
     {
         std::string account;
-        std::string symbol;
+        CompanySymbol symbol;
         Quantity quantity   = 0ull;
         double avg_price    = 0.0;
         double market_price = 0.0;
@@ -108,7 +108,7 @@ struct Portfolio
 
     struct EstimatedDividend
     {
-        std::string symbol;
+        CompanySymbol symbol;
         double estimated_dvd      = 0.0;
         double estimated_net_dvd  = 0.0;
         uint64_t estimated_shares = 0;

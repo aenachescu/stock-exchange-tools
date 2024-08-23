@@ -80,7 +80,7 @@ private:
 
 class ActivityFilterBySymbol : public IActivityFilter {
 public:
-    ActivityFilterBySymbol(const std::string& symbol) : m_symbol(symbol)
+    ActivityFilterBySymbol(const CompanySymbol& symbol) : m_symbol(symbol)
     {
     }
     ~ActivityFilterBySymbol() = default;
@@ -91,7 +91,7 @@ public:
     }
 
 private:
-    const std::string m_symbol;
+    const CompanySymbol m_symbol;
 };
 
 class ActivityFilterByCurrency : public IActivityFilter {
