@@ -18,7 +18,7 @@ if(NOT ftxui_POPULATED)
     add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-set(CMAKE_CXX_COMPILER "clang++-15")
+set(CMAKE_CXX_COMPILER "clang++-17")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE on)
 
@@ -39,7 +39,7 @@ target_include_directories(bvb_scraper_tool PUBLIC
     expected/include/tl
     magic_enum/include)
 set_target_properties(bvb_scraper_tool PROPERTIES COMPILE_FLAGS
-    "-std=c++20 -Wall -Werror")
+    "-std=c++23 -Wall -Werror")
 target_link_libraries(bvb_scraper_tool ${CURL_LIBRARIES})
 
 #
@@ -65,7 +65,7 @@ target_include_directories(index_investing_tool PUBLIC
     magic_enum/include
 )
 set_target_properties(index_investing_tool PROPERTIES COMPILE_FLAGS
-    "-std=c++20 -Wall -Werror")
+    "-std=c++23 -Wall -Werror")
 target_link_libraries(index_investing_tool PRIVATE
     ${OPENSSL_LIBRARIES}
     ${CURL_LIBRARIES}
@@ -91,5 +91,5 @@ target_include_directories(set_unit_tests PUBLIC
     expected/include/tl
     magic_enum/include)
 set_target_properties(set_unit_tests PROPERTIES COMPILE_FLAGS
-    "-std=c++20 -Wall -Werror")
+    "-std=c++23 -Wall -Werror")
 target_link_libraries(set_unit_tests ${CURL_LIBRARIES} gtest gtest_main pthread)
