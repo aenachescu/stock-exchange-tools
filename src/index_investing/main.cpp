@@ -7,6 +7,7 @@
 #include "terminal_ui.h"
 #include "tradeville.h"
 #include "tradeville_activity_filters.h"
+#include "tradeville_portfolio_filters.h"
 
 #include <iostream>
 #include <magic_enum.hpp>
@@ -53,6 +54,25 @@ bool IsValidConfig(const Config& cfg)
     return true;
 }
 
+tl::expected<Index, Error> GetConfiguredIndex(const Config& cfg)
+{
+    BvbScraper bvb;
+
+    auto indexes = bvb.LoadAdjustmentsHistoryFromFile(*cfg.GetIndexName());
+    if (! indexes) {
+        return tl::unexpected(indexes.error());
+    }
+
+    for (const auto& i : *indexes) {
+        if (i.date == *cfg.GetIndexAdjustmentDate() &&
+            i.reason == *cfg.GetIndexAdjustmentReason()) {
+            return i;
+        }
+    }
+
+    return tl::unexpected(Error::InvalidArg);
+}
+
 void PrintAssetAndCurrencyValue(
     const AssetAndCurrencyValue& val,
     const char* type)
@@ -85,7 +105,8 @@ void PrintAssetAndCurrencyValue(
 int CmdPrintPortfolio(
     const Config& cfg,
     const Portfolio::SortFields& sortFields,
-    const Portfolio::SortEstDvdFields& sortEstDvdFields)
+    const Portfolio::SortEstDvdFields& sortEstDvdFields,
+    const PortfolioFilters& filters)
 {
     ColorizedTable table, estDvdTable;
     size_t id = 1;
@@ -114,6 +135,8 @@ int CmdPrintPortfolio(
                   << magic_enum::enum_name(activities.error()) << std::endl;
         return -1;
     }
+
+    filters.Filter(*portfolio);
 
     auto err = portfolio->FillStatistics(*activities, *dvdActivities);
     if (err != Error::NoError) {
@@ -714,7 +737,9 @@ void CmdPrintHelp()
                  "capital letter then the field will be sorted in descending "
                  "order, otherwise ascending order. For example, `--sort "
                  "a,ccy,Tr` will sort the portfolio by asset type and currency "
-                 "in ascending order and by total return in descending order."
+                 "in ascending order and by total return in descending order. "
+                 "Use --asset, --symbol, --currency, --index in order to "
+                 "filter the portfolio."
               << std::endl;
     std::cout << "--ptva - prints the activity from tradeville. Use --type, "
                  "--year, --symbol, --currency in order to filter the activity."
@@ -816,7 +841,7 @@ bool ParseActivityFilters(
     return true;
 }
 
-int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
+bool ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
 {
     static const std::unordered_map<std::string_view, Portfolio::SortBy>
         kFields = {
@@ -840,7 +865,7 @@ int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
     for (auto& token : tokens) {
         if (token.empty() == true) {
             std::cout << "empty SortBy token" << std::endl;
-            return -1;
+            return false;
         }
 
         auto sortOrder = std::islower(token[0])
@@ -856,16 +881,16 @@ int ParsePortfolioSortBy(Portfolio::SortFields& fields, const std::string& str)
         auto it = kFields.find(token);
         if (it == kFields.end()) {
             std::cout << "unrecognized SortBy token: " << token << std::endl;
-            return -1;
+            return false;
         }
 
         fields.push_back(std::make_pair(it->second, sortOrder));
     }
 
-    return 0;
+    return true;
 }
 
-int ParsePortfolioSortEstDvdBy(
+bool ParsePortfolioSortEstDvdBy(
     Portfolio::SortEstDvdFields& fields,
     const std::string& str)
 {
@@ -884,7 +909,7 @@ int ParsePortfolioSortEstDvdBy(
     for (auto& token : tokens) {
         if (token.empty() == true) {
             std::cout << "empty SortEstDvdBy token" << std::endl;
-            return -1;
+            return false;
         }
 
         auto sortOrder = std::islower(token[0])
@@ -901,13 +926,142 @@ int ParsePortfolioSortEstDvdBy(
         if (it == kFields.end()) {
             std::cout << "unrecognized SortEstDvdBy token: " << token
                       << std::endl;
-            return -1;
+            return false;
         }
 
         fields.push_back(std::make_pair(it->second, sortOrder));
     }
 
-    return 0;
+    return true;
+}
+
+bool ParsePtvpCommand(
+    const Config& cfg,
+    char* argv[],
+    int argc,
+    int start,
+    Portfolio::SortFields& sortFields,
+    Portfolio::SortEstDvdFields& sortEstDvdFields,
+    PortfolioFilters& filters)
+{
+    bool res = true;
+
+    for (int i = start; i < argc; i++) {
+        std::string param(argv[i]);
+        std::transform(
+            param.begin(),
+            param.end(),
+            param.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+
+        if (param == "--sort") {
+            if (i + 1 >= argc) {
+                std::cout << "no sort fields provided!" << std::endl;
+                return false;
+            }
+
+            res = ParsePortfolioSortBy(sortFields, argv[i + 1]);
+            if (res == false) {
+                return res;
+            }
+
+            i++;
+            continue;
+        }
+
+        if (param == "--sort-est-dvd") {
+            if (i + 1 >= argc) {
+                std::cout << "no sort est dvd fields provided!" << std::endl;
+                return false;
+            }
+
+            res = ParsePortfolioSortEstDvdBy(sortEstDvdFields, argv[i + 1]);
+            if (res == false) {
+                return res;
+            }
+
+            i++;
+            continue;
+        }
+
+        if (param == "--asset") {
+            if (i + 1 >= argc) {
+                std::cout << "no asset type provided!" << std::endl;
+                return false;
+            }
+
+            auto assetType = magic_enum::enum_cast<AssetType>(
+                argv[i + 1],
+                magic_enum::case_insensitive);
+            if (assetType == std::nullopt) {
+                std::cout << "invalid asset type!" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(std::make_unique<PortfolioFilterByAsset>(
+                argv[i][2] == 'a',
+                *assetType));
+
+            i++;
+            continue;
+        }
+
+        if (param == "--currency") {
+            if (i + 1 >= argc) {
+                std::cout << "no currency provided!" << std::endl;
+                return false;
+            }
+
+            auto currency = magic_enum::enum_cast<Currency>(
+                argv[i + 1],
+                magic_enum::case_insensitive);
+            if (currency == std::nullopt) {
+                std::cout << "invalid currency!" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(std::make_unique<PortfolioFilterByCurrency>(
+                argv[i][2] == 'c',
+                *currency));
+
+            i++;
+            continue;
+        }
+
+        if (param == "--symbol") {
+            if (i + 1 >= argc) {
+                std::cout << "no symbol provided!" << std::endl;
+                return false;
+            }
+
+            filters.AddFilter(std::make_unique<PortfolioFilterBySymbol>(
+                argv[i][2] == 's',
+                argv[i + 1]));
+
+            i++;
+            continue;
+        }
+
+        if (param == "--index") {
+            auto index = GetConfiguredIndex(cfg);
+            if (! index) {
+                std::cout << "failed to get configured index: "
+                          << magic_enum::enum_name(index.error()) << std::endl;
+            }
+
+            filters.AddFilter(std::make_unique<PortfolioFilterByIndex>(
+                argv[i][2] == 'i',
+                *index));
+
+            continue;
+        }
+
+        std::cout << "unknown parameter for ptvp command: " << argv[i]
+                  << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 int main(int argc, char* argv[])
@@ -932,36 +1086,21 @@ int main(int argc, char* argv[])
     if (strcmp(argv[1], "--ptvp") == 0) {
         Portfolio::SortFields sortFields;
         Portfolio::SortEstDvdFields sortEstDvdFields;
+        PortfolioFilters filters;
 
-        for (int i = 2; i < argc; i++) {
-            if (strcmp(argv[i], "--sort") == 0) {
-                if (i + 1 >= argc) {
-                    std::cout << "no sort fields provided!" << std::endl;
-                    return -1;
-                }
-
-                int res = ParsePortfolioSortBy(sortFields, argv[i + 1]);
-                if (res < 0) {
-                    return res;
-                }
-            }
-
-            if (strcmp(argv[i], "--sort-est-dvd") == 0) {
-                if (i + 1 >= argc) {
-                    std::cout << "no sort est dvd fields provided!"
-                              << std::endl;
-                    return -1;
-                }
-
-                int res =
-                    ParsePortfolioSortEstDvdBy(sortEstDvdFields, argv[i + 1]);
-                if (res < 0) {
-                    return res;
-                }
-            }
+        bool res = ParsePtvpCommand(
+            cfg,
+            argv,
+            argc,
+            2,
+            sortFields,
+            sortEstDvdFields,
+            filters);
+        if (res == false) {
+            return -1;
         }
 
-        return CmdPrintPortfolio(cfg, sortFields, sortEstDvdFields);
+        return CmdPrintPortfolio(cfg, sortFields, sortEstDvdFields, filters);
     } else if (strcmp(argv[1], "--ptva") == 0) {
         ActivityFilters filters;
         if (ParseActivityFilters(argv, argc, 2, filters) == false) {
