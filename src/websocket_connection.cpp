@@ -35,19 +35,17 @@ Error WebsocketConnection::Connect(
         return Error::IpResolverFailed;
     }
 
-    auto endpoint = net::connect(get_lowest_layer(m_wss), resolverResults, ec);
+    net::connect(get_lowest_layer(m_wss), resolverResults, ec);
     if (ec) {
         return Error::TcpConnectFailed;
     }
-
-    std::string wsHost = m_host + ":" + std::to_string(endpoint.port());
 
     m_wss.next_layer().handshake(ssl::stream_base::client, ec);
     if (ec) {
         return Error::SslHandshakeFailed;
     }
 
-    m_wss.handshake(wsHost, target, ec);
+    m_wss.handshake(m_host, target, ec);
     if (ec) {
         return Error::WebsocketHandshakeFailed;
     }
