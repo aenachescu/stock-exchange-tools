@@ -44,5 +44,11 @@
         "system_error": "cpp",
         "tuple": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "cSpell.words": [
+        "apitv",
+        "noncopyable",
+        "nonmovable",
+        "tradeville"
+    ]
 }
