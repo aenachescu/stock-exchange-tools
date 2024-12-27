@@ -259,7 +259,7 @@ void Portfolio::FillDividends(const Activities& activities)
 
         for (auto& entry : entries) {
             if (entry.symbol == activity.symbol) {
-                entry.dividends += activity.cash_ammount;
+                entry.dividends += activity.cash_amount;
                 break;
             }
         }
@@ -998,7 +998,7 @@ tl::expected<Activities, Error> Tradeville::ParseActivity(
         return tl::unexpected(err);
     }
 
-    err = ParseActivityCashAmmount(dataIt->value, activities);
+    err = ParseActivityCashAmount(dataIt->value, activities);
     if (err != Error::NoError) {
         return tl::unexpected(err);
     }
@@ -1229,23 +1229,23 @@ Error Tradeville::ParseActivityCommission(
     return Error::NoError;
 }
 
-Error Tradeville::ParseActivityCashAmmount(
+Error Tradeville::ParseActivityCashAmount(
     const rapidjson::Value& doc,
     Activities& activities)
 {
-    auto ammountArray = doc.FindMember("Ammount")->value.GetArray();
+    auto amountArray = doc.FindMember("Ammount")->value.GetArray();
 
     for (size_t i = 0; i < activities.size(); i++) {
-        if (ammountArray[i].IsUint64() == true) {
-            activities[i].cash_ammount =
-                static_cast<double>(ammountArray[i].GetUint64());
-        } else if (ammountArray[i].IsInt64() == true) {
-            activities[i].cash_ammount =
-                static_cast<double>(ammountArray[i].GetInt64());
-        } else if (ammountArray[i].IsDouble() == true) {
-            activities[i].cash_ammount = ammountArray[i].GetDouble();
+        if (amountArray[i].IsUint64() == true) {
+            activities[i].cash_amount =
+                static_cast<double>(amountArray[i].GetUint64());
+        } else if (amountArray[i].IsInt64() == true) {
+            activities[i].cash_amount =
+                static_cast<double>(amountArray[i].GetInt64());
+        } else if (amountArray[i].IsDouble() == true) {
+            activities[i].cash_amount = amountArray[i].GetDouble();
         } else {
-            return Error::TradevilleInvalidCashAmmount;
+            return Error::TradevilleInvalidCashAmount;
         }
     }
 

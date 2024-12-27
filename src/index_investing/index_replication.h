@@ -70,14 +70,14 @@ public:
     IndexReplication()  = default;
     ~IndexReplication() = default;
 
-    tl::expected<Entries, Error> CalculateReplication(uint64_t cashAmmount);
+    tl::expected<Entries, Error> CalculateReplication(uint64_t cashAmount);
 
     tl::expected<Entries, Error> CalculateReplication(
         const Index& index,
         const Portfolio& portfolio,
         const Activities& activities,
         const DividendActivities& dvdActivities,
-        uint64_t cashAmmount);
+        uint64_t cashAmount);
 
     tl::expected<uint64_t, Error> GetPortfolioValue(
         const Index& index,
@@ -91,7 +91,7 @@ private:
         const Activities& activities,
         const DividendActivities& dvd);
     void FillPortfolioStatistics();
-    void FillIndexStatistics(uint64_t cashAmmount);
+    void FillIndexStatistics(uint64_t cashAmount);
 
     DividendActivities::const_iterator FindDividendActivity(
         const DividendActivities& dvdActivities,

@@ -44,7 +44,7 @@ struct Activity
     double avg_price        = 0.0;
     double commission       = 0.0;
     double tax              = 0.0;
-    double cash_ammount     = 0.0;
+    double cash_amount      = 0.0;
     double cash_position    = 0.0;
     double profit           = 0.0;
 };
@@ -233,7 +233,7 @@ private:
     Error ParseActivityCommission(
         const rapidjson::Value& doc,
         Activities& activities);
-    Error ParseActivityCashAmmount(
+    Error ParseActivityCashAmount(
         const rapidjson::Value& doc,
         Activities& activities);
     Error ParseActivityCashPosition(

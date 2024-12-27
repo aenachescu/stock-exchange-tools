@@ -288,7 +288,7 @@ int CmdPrintActivity(const Config& cfg, const ActivityFilters& filters)
         "Price",
         "Commission",
         "Tax",
-        "Ammount",
+        "Amount",
         "Avg price",
         "Currency",
         "Note",
@@ -314,7 +314,7 @@ int CmdPrintActivity(const Config& cfg, const ActivityFilters& filters)
             double_to_string(i.price, 4),
             double_to_string(i.commission, 4),
             double_to_string(i.tax, 4),
-            double_to_string(i.cash_ammount, 4),
+            double_to_string(i.cash_amount, 4),
             double_to_string(i.avg_price, 4),
             std::string{magic_enum::enum_name(i.currency)},
             i.note,
@@ -366,10 +366,9 @@ int CmdPrintDividends(const Config& cfg, uint64_t startYear, uint64_t endYear)
         }
 
         auto& currencyMap = dividends[year];
-        auto res =
-            currencyMap.emplace(activity.currency, activity.cash_ammount);
+        auto res = currencyMap.emplace(activity.currency, activity.cash_amount);
         if (res.second == false) {
-            res.first->second += activity.cash_ammount;
+            res.first->second += activity.cash_amount;
         }
     }
 
@@ -387,7 +386,7 @@ int CmdPrintDividends(const Config& cfg, uint64_t startYear, uint64_t endYear)
 
 tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
     const Config& cfg,
-    uint64_t ammount,
+    uint64_t amount,
     bool addPortfolioValue)
 {
     IndexReplication ir;
@@ -448,7 +447,7 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
             return tl::unexpected(portfolioValue.error());
         }
 
-        ammount += *portfolioValue;
+        amount += *portfolioValue;
     }
 
     auto replication = ir.CalculateReplication(
@@ -456,7 +455,7 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
         *portfolio,
         *activities,
         *dvdActivities,
-        ammount);
+        amount);
     if (! replication) {
         std::cout << "Failed to calculate index replication: "
                   << magic_enum::enum_name(replication.error()) << std::endl;
@@ -468,7 +467,7 @@ tl::expected<IndexReplication::Entries, Error> GetIndexReplication(
 
 int CmdPrintIndexReplication(
     const Config& cfg,
-    uint64_t ammount,
+    uint64_t amount,
     bool addPortfolioValue)
 {
     ColorizedTable indexReplicationTable;
@@ -495,7 +494,7 @@ int CmdPrintIndexReplication(
         return val < 0 ? Color::Red : Color::Green;
     };
 
-    auto replication = GetIndexReplication(cfg, ammount, addPortfolioValue);
+    auto replication = GetIndexReplication(cfg, amount, addPortfolioValue);
     if (! replication) {
         return -1;
     }
@@ -750,11 +749,11 @@ void CmdPrintHelp()
                  "then it prints dividends for each year from interval. If no "
                  "one is set then it prints dividends for current year."
               << std::endl;
-    std::cout << "--ptvir <cash_ammount> - prints the status of index "
+    std::cout << "--ptvir <cash_amount> - prints the status of index "
                  "replication based on index adjustment from config file."
-                 "If cash_ammount argument is missing then the current value "
-                 "of stocks will be used. If the cash_ammount argument starts "
-                 "with '+' then that ammount will be added to current value of "
+                 "If cash_amount argument is missing then the current value "
+                 "of stocks will be used. If the cash_amount argument starts "
+                 "with '+' then that amount will be added to current value of "
                  "stocks, this method can be used if you want to invest some "
                  "money and you want to replicate a specific index."
               << std::endl;
@@ -1121,21 +1120,21 @@ int main(int argc, char* argv[])
 
         return CmdPrintDividends(cfg, startYear, endYear);
     } else if (strcmp(argv[1], "--ptvir") == 0) {
-        uint64_t ammount       = 0;
+        uint64_t amount        = 0;
         bool addPortfolioValue = false;
 
         if (argc == 2) {
             addPortfolioValue = true;
         } else if (argc > 2) {
             if (argv[2][0] == '+') {
-                ammount           = std::stoull(argv[2] + 1);
+                amount            = std::stoull(argv[2] + 1);
                 addPortfolioValue = true;
             } else {
-                ammount = std::stoull(argv[2]);
+                amount = std::stoull(argv[2]);
             }
         }
 
-        return CmdPrintIndexReplication(cfg, ammount, addPortfolioValue);
+        return CmdPrintIndexReplication(cfg, amount, addPortfolioValue);
     } else if (strcmp(argv[1], "--stva") == 0) {
         if (argc != 3) {
             std::cout << "no year provided" << std::endl;

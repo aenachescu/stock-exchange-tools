@@ -18,13 +18,13 @@ uint64_t ceilToU64(double d)
 }
 
 tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
-    uint64_t cashAmmount)
+    uint64_t cashAmount)
 {
     if (m_entries.empty()) {
         return tl::unexpected(Error::NoData);
     }
 
-    FillIndexStatistics(cashAmmount);
+    FillIndexStatistics(cashAmount);
 
     std::vector<Entry> res;
     res.reserve(m_entries.size());
@@ -43,7 +43,7 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
     const Portfolio& portfolio,
     const Activities& activities,
     const DividendActivities& dvdActivities,
-    uint64_t cashAmmount)
+    uint64_t cashAmount)
 {
     Error err = Error::NoError;
 
@@ -70,7 +70,7 @@ tl::expected<IR::Entries, Error> IndexReplication::CalculateReplication(
 
         FillPortfolioStatistics();
 
-        return CalculateReplication(cashAmmount);
+        return CalculateReplication(cashAmount);
     } while (false);
 
     m_entries.clear();
@@ -185,15 +185,15 @@ Error IndexReplication::FillActivityData(const Activities& activities)
             }
 
             uint64_t shares = std::get<uint64_t>(activity.quantity);
-            double ammount  = std::fabs(activity.cash_ammount);
+            double amount   = std::fabs(activity.cash_amount);
             double cost     = activity.price * shares;
 
             entry.cost += cost;
-            entry.commission += (ammount - cost);
+            entry.commission += (amount - cost);
 
             sharesPerSymbol[activity.symbol] += shares;
         } else if (activity.type == ActivityType::Dividend) {
-            entry.dividends += activity.cash_ammount;
+            entry.dividends += activity.cash_amount;
         }
     }
 
@@ -265,12 +265,12 @@ void IndexReplication::FillPortfolioStatistics()
     }
 }
 
-void IndexReplication::FillIndexStatistics(uint64_t cashAmmount)
+void IndexReplication::FillIndexStatistics(uint64_t cashAmount)
 {
     for (auto& it : m_entries) {
         Entry& e = it.second;
 
-        e.target_value           = e.weight * cashAmmount;
+        e.target_value           = e.weight * cashAmount;
         e.delta_cost             = e.cost - e.target_value;
         e.delta_value            = e.value - e.target_value;
         e.delta_value_percentage = e.delta_value / e.target_value * 100.0;

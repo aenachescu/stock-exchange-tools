@@ -34,7 +34,7 @@ enum class Error : uint32_t
     TradevilleInvalidNote,
     TradevilleInvalidActivityType,
     TradevilleInvalidCommission,
-    TradevilleInvalidCashAmmount,
+    TradevilleInvalidCashAmount,
     TradevilleInvalidCashPosition,
     TradevilleInvalidAssetPosition,
     TradevilleInvalidProfit,
