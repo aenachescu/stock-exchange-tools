@@ -1299,6 +1299,9 @@ Error Tradeville::ParseActivityProfit(
         if (profitArray[i].IsUint64() == true) {
             activities[i].profit =
                 static_cast<double>(profitArray[i].GetUint64());
+        } else if (profitArray[i].IsInt64() == true) {
+            activities[i].profit =
+                static_cast<double>(profitArray[i].GetInt64());
         } else if (profitArray[i].IsDouble() == true) {
             activities[i].profit = profitArray[i].GetDouble();
         } else if (profitArray[i].IsNull() == false) {
